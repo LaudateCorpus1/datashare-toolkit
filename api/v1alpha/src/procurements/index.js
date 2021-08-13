@@ -73,6 +73,7 @@ var procurements = express.Router();
  *   get:
  *     summary: List Procurements based off request parameters
  *     description: Returns the ProcurementList response
+ *     operationId: listProcurements
  *     tags:
  *       - procurements
  *     parameters:
@@ -131,6 +132,7 @@ procurements.get('/procurements', async (req, res) => {
  *   post:
  *     summary: Change the marketplace entititlement approval status based off request parameters
  *     description: Returns a response indicating if successful
+ *     operationId: approveProcurement
  *     tags:
  *       - procurements
  *     parameters:
@@ -181,31 +183,10 @@ procurements.post('/procurements/approve', async (req, res) => {
  * @swagger
  *
  * /projects/{projectId}/procurements:myProducts:
- *   post:
- *     summary: Performs redirect to the Datashare My Products UI page.
- *     description: Returns a 301 redirect response
- *     tags:
- *       - procurements
- *     parameters:
- *     - in: path
- *       name: projectId
- *       type: string
- *       required: true
- *       description: Project Id of the Procurement request
- *     responses:
- *       301:
- *         description: Redirect to My Products URL
- */
-// Backwards compatibility for marketplace
-procurements.post(['/projects/:projectId/procurements:myProducts', '/procurements:myProducts'], productsRedirectionHandler);
-
-/**
- * @swagger
- *
- * /projects/{projectId}/procurements:myProducts:
  *   get:
  *     summary: Performs redirect to the Datashare My Products UI page.
  *     description: Returns a 301 redirect response
+ *     operationId: redirectMyProducts
  *     tags:
  *       - procurements
  *     parameters:

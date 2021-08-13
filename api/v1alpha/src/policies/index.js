@@ -100,6 +100,7 @@ var policies = express.Router();
  *   get:
  *     summary: List Policy based off request parameters
  *     description: Returns the DatsetList response
+ *     operationId: listPolicies
  *     tags:
  *       - policies
  *     parameters:
@@ -170,6 +171,7 @@ policies.get('/products', async(req, res) => {
  *   post:
  *     summary: Create Policy based off request body
  *     description: Returns the Datset response
+ *     operationId: createPolicy
  *     tags:
  *       - policies
  *     parameters:
@@ -275,6 +277,7 @@ policies.post('/policies', async(req, res) => {
  *   get:
  *     summary: Get Policy based off policyId
  *     description: Returns the Datset response
+ *     operationId: getPolicyByPolicyId
  *     tags:
  *       - policies
  *     parameters:
@@ -335,6 +338,7 @@ policies.get('/policies/:policyId', async(req, res) => {
  *   put:
  *     summary: Update Policy based off policy ID and request body
  *     description: Returns the Policy response
+ *     operationId: updatePolicyByPolicyId
  *     tags:
  *       - policies
  *     parameters:
@@ -447,6 +451,7 @@ policies.put('/policies/:policyId', async(req, res) => {
  *   delete:
  *     summary: Delete Policy based off policy ID and request body
  *     description: Returns the Policy response
+ *     operationId: deletePolicyByPolicyId
  *     tags:
  *       - policies
  *     parameters:
@@ -524,6 +529,7 @@ policies.delete('/policies/:policyId', async(req, res) => {
  *   get:
  *     summary: List Policy based off accountId and request parameters
  *     description: Returns the PolicyList response
+ *     operationId: listPoliciesByAccountId
  *     tags:
  *       - accounts
  *     parameters:
@@ -584,6 +590,7 @@ policies.get('/accounts/:accountId/policies', async(req, res) => {
  *   get:
  *     summary: List Policy based off datasetId and request parameters
  *     description: Returns the PolicyList response
+ *     operationId: listPoliciesByDatasetId
  *     tags:
  *       - datasets
  *     parameters:

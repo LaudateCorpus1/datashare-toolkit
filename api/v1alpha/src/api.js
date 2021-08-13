@@ -68,7 +68,11 @@ const options = {
         externalDocs: {
             description: 'Find out more about Datashare Toolkit',
             url: 'https://github.com/GoogleCloudPlatform/datashare-toolkit'
-        }
+        },
+        // APi GW Integration
+        'x-google-backend': {
+            address: 'DS_API_URL'
+        },
     },
     // Path to the API docs
     apis: ['./index.js', './src/index.js', './*/index.js', './src/*/index.js']
@@ -175,6 +179,7 @@ router.all('*', cors(), verifyProject);
  *   get:
  *     summary: Welcome message status
  *     description: Returns a welcome message for the API
+ *     operationId: getRoot
  *     tags:
  *       - welcome
  *     produces:
@@ -210,6 +215,7 @@ router.get('/', function (req, res) {
  *   get:
  *     summary: Swagger UI for Datashare API OpenAPI Specification
  *     description: Returns the Swagger UI with the OpenAPI specification for the Datashare API services
+ *     operationId: getDocs
  *     tags:
  *       - docs
  *     produces:
@@ -230,6 +236,7 @@ router.get(['/docs', '/api-docs'], swaggerUi.setup(openapiSpec, swaggerOptions))
  *   get:
  *     summary: Datashare API OpenAPI Specification
  *     description: Returns the OpenAPI specification for the Datashare API services
+ *     operationId: getOpenapiSpec
  *     tags:
  *       - docs
  *     produces:
@@ -266,6 +273,7 @@ router.use(resources);
  *   get:
  *     summary: Default 404 Response
  *     description: Returns the default 404 response after all other routes exhausted
+ *     operationId: getAll
  *     tags:
  *       - default
  *     produces:
