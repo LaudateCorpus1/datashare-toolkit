@@ -35,7 +35,7 @@ var procurements = express.Router();
  *
  *
  * definitions:
- *   Policy:
+ *   Procurement:
  *     type: object
  *     description: Procurement object
  *     properties:
@@ -63,8 +63,6 @@ var procurements = express.Router();
  *         type: string
  *         description: Entitlement Id of the purchased SKU
  *     required:
- *       - rowId
- *       - eventId
  *       - eventType
  */
 
@@ -80,35 +78,32 @@ var procurements = express.Router();
  *     parameters:
  *     - in: path
  *       name: projectId
- *       schema:
- *          type: string
+ *       type: string
  *       required: true
  *       description: Project Id of the Procurement request
+ *     produces:
+ *       - application/json
  *     responses:
  *       200:
  *         description: Procurement list
- *         content:
- *           application/json:
- *             schema:
- *               type: object
- *               properties:
- *                 success:
- *                   type: boolean
- *                   description: Success of the request
- *                 code:
- *                   type: integer
- *                   default: 200
- *                   description: HTTP status code
- *                 data:
- *                   type: array
- *                   items:
- *                      $ref: '#/definitions/Procurement'
+ *         schema:
+ *           type: object
+ *           properties:
+ *             success:
+ *               type: boolean
+ *               description: Success of the request
+ *             code:
+ *               type: integer
+ *               default: 200
+ *               description: HTTP status code
+ *             data:
+ *               type: array
+ *               items:
+ *                  $ref: '#/definitions/Procurement'
  *       500:
  *         description: Error
- *         content:
- *           application/json:
- *             schema:
- *               $ref: '#/definitions/Error'
+ *         schema:
+ *           $ref: '#/definitions/Error'
  */
 procurements.get('/procurements', async (req, res) => {
     const projectId = req.header('x-gcp-project-id');
@@ -141,31 +136,28 @@ procurements.get('/procurements', async (req, res) => {
  *     parameters:
  *     - in: path
  *       name: projectId
- *       schema:
- *          type: string
+ *       type: string
  *       required: true
  *       description: Project Id of the Procurement request
+ *     produces:
+ *       - application/json
  *     responses:
  *       200:
  *         description: Procurement list
- *         content:
- *           application/json:
- *             schema:
- *               type: object
- *               properties:
- *                 success:
- *                   type: boolean
- *                   description: Success of the request
- *                 code:
- *                   type: integer
- *                   default: 200
- *                   description: HTTP status code
+ *         schema:
+ *           type: object
+ *           properties:
+ *             success:
+ *               type: boolean
+ *               description: Success of the request
+ *             code:
+ *               type: integer
+ *               default: 200
+ *               description: HTTP status code
  *       500:
  *         description: Error
- *         content:
- *           application/json:
- *             schema:
- *               $ref: '#/definitions/Error'
+ *         schema:
+ *           $ref: '#/definitions/Error'
  */
 procurements.post('/procurements/approve', async (req, res) => {
     const projectId = req.header('x-gcp-project-id');
@@ -197,8 +189,7 @@ procurements.post('/procurements/approve', async (req, res) => {
  *     parameters:
  *     - in: path
  *       name: projectId
- *       schema:
- *          type: string
+ *       type: string
  *       required: true
  *       description: Project Id of the Procurement request
  *     responses:
@@ -220,8 +211,7 @@ procurements.post(['/projects/:projectId/procurements:myProducts', '/procurement
  *     parameters:
  *     - in: path
  *       name: projectId
- *       schema:
- *          type: string
+ *       type: string
  *       required: true
  *       description: Project Id of the Procurement request
  *     responses:

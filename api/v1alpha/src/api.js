@@ -32,7 +32,7 @@ const PORT = process.env.PORT || 5555;
  ************************************************************/
 const options = {
     definition: {
-        openapi: '3.0.0', // Specification (optional, defaults to swagger: '2.0')
+        swagger: '2.0', // Specification (optional, defaults to swagger: '2.0')
         info: {
             description: 'This is the Datashare API service that provides data producers the ability to expose subsets of their datasets programatically.',
             title: 'Datashare API Service', // Title (required)
@@ -45,6 +45,8 @@ const options = {
                 url: 'https://github.com/GoogleCloudPlatform/datashare-toolkit/blob/master/LICENSE.txt'
             }
         },
+        // OAS v3
+        /*
         servers: [{
             url: '{serverUrl}/{basePath}',
             variables: {
@@ -58,6 +60,11 @@ const options = {
                 }
             }
         }],
+        */
+        // Swagger 2.0
+        // host: 'localhost:' + PORT / This defaults to the host url of the content
+        basePath: '/' + apiVersion,
+        schemes: ["https", "http"],
         externalDocs: {
             description: 'Find out more about Datashare Toolkit',
             url: 'https://github.com/GoogleCloudPlatform/datashare-toolkit'
@@ -170,23 +177,23 @@ router.all('*', cors(), verifyProject);
  *     description: Returns a welcome message for the API
  *     tags:
  *       - welcome
+ *     produces:
+ *       - application/json
  *     responses:
  *       200:
  *         description: Welcome Message Response
- *         content:
- *           application/json:
- *             schema:
- *               type: object
- *               properties:
- *                 success:
- *                   type: boolean
- *                   description: Success of the request
- *                 code:
- *                   type: integer
- *                   description: HTTP status code
- *                 message:
- *                   type: string
- *                   description: Status message
+ *         schema:
+ *           type: object
+ *           properties:
+ *             success:
+ *               type: boolean
+ *               description: Success of the request
+ *             code:
+ *               type: integer
+ *               description: HTTP status code
+ *             message:
+ *               type: string
+ *               description: Status message
  */
 router.get('/', function (req, res) {
     res.status(200).json({
@@ -205,13 +212,13 @@ router.get('/', function (req, res) {
  *     description: Returns the Swagger UI with the OpenAPI specification for the Datashare API services
  *     tags:
  *       - docs
+ *     produces:
+ *       - text/html
  *     responses:
  *       200:
  *         description: Welcome Message Response
- *         content:
- *           text/html:
- *              schema:
- *                type: object
+ *           schema:
+ *             type: object
  */
 router.use(['/docs', '/api-docs'], swaggerUi.serve);
 router.get(['/docs', '/api-docs'], swaggerUi.setup(openapiSpec, swaggerOptions));
@@ -225,13 +232,13 @@ router.get(['/docs', '/api-docs'], swaggerUi.setup(openapiSpec, swaggerOptions))
  *     description: Returns the OpenAPI specification for the Datashare API services
  *     tags:
  *       - docs
+ *     produces:
+ *       - application/json
  *     responses:
  *       200:
  *         description: Welcome Message Response
- *         content:
- *           application/json:
- *             schema:
- *               type: object
+ *           schema:
+ *             type: object
  */
 routes = [
     '/docs/openapi_spec',
@@ -261,24 +268,24 @@ router.use(resources);
  *     description: Returns the default 404 response after all other routes exhausted
  *     tags:
  *       - default
+ *     produces:
+ *       - application/json
  *     responses:
  *       404:
  *         description: Default 404 Response
- *         content:
- *           application/json:
- *             schema:
- *               type: object
- *               properties:
- *                 success:
- *                   type: boolean
- *                   default: true
- *                   description: Success of the request
- *                 code:
- *                   type: integer
- *                   description: HTTP status code
- *                 message:
- *                   type: string
- *                   description: Status message
+ *         schema:
+ *           type: object
+ *           properties:
+ *             success:
+ *               type: boolean
+ *               default: true
+ *               description: Success of the request
+ *             code:
+ *               type: integer
+ *               description: HTTP status code
+ *             message:
+ *               type: string
+ *               description: Status message
  */
 router.get('*', function (req, res) {
     res.status(404).json({
