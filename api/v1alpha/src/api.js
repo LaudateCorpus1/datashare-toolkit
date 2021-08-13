@@ -64,7 +64,7 @@ const options = {
         // Swagger 2.0
         // host: 'localhost:' + PORT / This defaults to the host url of the content
         basePath: '/' + apiVersion,
-        schemes: ["https", "http"],
+        schemes: ["http", "https"],
         externalDocs: {
             description: 'Find out more about Datashare Toolkit',
             url: 'https://github.com/GoogleCloudPlatform/datashare-toolkit'
@@ -73,9 +73,60 @@ const options = {
         'x-google-backend': {
             address: 'DS_API_URL'
         },
+        security: [{
+            'apiKeyAuth': [],
+            'accounts.google.com': []
+        }],
+        securityDefinitions: {
+            'apiKeyAuth': {
+                'type': 'apiKey',
+                'name': 'x-api-key',
+                'in': 'header'
+            },
+            'accounts.google.com': {
+                'type': 'oauth2',
+                'authorizationUrl': 'https://accounts.google.com/o/oauth2/v2/auth',
+                'flow': 'implicit',
+                'scopes': {
+                    'https://www.googleapis.com/auth/cloud-platform': 'default',
+                },
+                'x-google-issuer': 'https://accounts.google.com',
+                'x-google-jwks_uri': 'https://www.googleapis.com/oauth2/v3/certs',
+            },
+            'accounts.google.com2': {
+                'type': 'oauth2',
+                'authorizationUrl': 'https://accounts.google.com/o/oauth2/v2/auth',
+                'flow': 'implicit',
+                'scopes': {
+                    'https://www.googleapis.com/auth/cloud-platform': 'default',
+                },
+                'x-google-issuer': 'accounts.google.com',
+                'x-google-jwks_uri': 'https://www.googleapis.com/oauth2/v3/certs',
+            },
+            'securetoken.google.com': {
+                'type': 'oauth2',
+                'flow': 'application',
+                'tokenUrl': 'https://oauth2.googleapis.com/token',
+                'scopes': {
+                    'https://www.googleapis.com/auth/cloud-platform': 'default',
+                },
+                'x-google-issuer': 'https://securetoken.google.com/$PROJECT_ID',
+                'x-google-jwks_uri': 'https://www.googleapis.com/service_accounts/v1/jwk/securetoken@system.gserviceaccount.com',
+            },
+            'cloud-commerce-partner': {
+                'type': 'oauth2',
+                'flow': 'application',
+                'tokenUrl': 'https://oauth2.googleapis.com/token',
+                'scopes': {
+                    'https://www.googleapis.com/auth/cloud-platform': 'default',
+                },
+                'x-google-issuer': 'https://www.googleapis.com/robot/v1/metadata/x509/cloud-commerce-partner@system.gserviceaccount.com',
+                'x-google-jwks_uri': 'https://www.googleapis.com/robot/v1/metadata/jwk/cloud-commerce-partner@system.gserviceaccount.com',
+            },
+        },
     },
     // Path to the API docs
-    apis: ['./index.js', './src/index.js', './*/index.js', './src/*/index.js']
+    apis: ['./api.js', './src/index.js', './*/index.js', './src/*/index.js']
 };
 
 const swaggerOptions = {
@@ -175,7 +226,7 @@ router.all('*', cors(), verifyProject);
 /**
  * @swagger
  *
- * /:
+ * '/welcome':
  *   get:
  *     summary: Welcome message status
  *     description: Returns a welcome message for the API
@@ -200,7 +251,7 @@ router.all('*', cors(), verifyProject);
  *               type: string
  *               description: Status message
  */
-router.get('/', function (req, res) {
+router.get('/welcome', function (req, res) {
     res.status(200).json({
         success: true,
         code: 200,
@@ -223,8 +274,8 @@ router.get('/', function (req, res) {
  *     responses:
  *       200:
  *         description: Welcome Message Response
- *           schema:
- *             type: object
+ *         schema:
+ *           type: object
  */
 router.use(['/docs', '/api-docs'], swaggerUi.serve);
 router.get(['/docs', '/api-docs'], swaggerUi.setup(openapiSpec, swaggerOptions));
@@ -244,8 +295,8 @@ router.get(['/docs', '/api-docs'], swaggerUi.setup(openapiSpec, swaggerOptions))
  *     responses:
  *       200:
  *         description: Welcome Message Response
- *           schema:
- *             type: object
+ *         schema:
+ *           type: object
  */
 routes = [
     '/docs/openapi_spec',
@@ -308,7 +359,7 @@ app.use('/' + apiVersion, router);
 
 // default app route redirects to current API version for now
 app.get('/', function (req, res) {
-    res.redirect('/' + apiVersion);
+    res.redirect('/' + apiVersion + '/welcome');
 });
 
 /************************************************************
