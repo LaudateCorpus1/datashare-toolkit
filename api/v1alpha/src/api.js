@@ -206,6 +206,8 @@ router.all('*', cors(), verifyProject);
  *     description: The Datashare API Policy Services
  *   - name: procurements
  *     description: The Datashare API Procurements Services
+ *   - name: products
+ *     description: The Datashare API Products Services
  *   - name: accounts
  *     description: The Datashare API Account Services
  *   - name: spots
