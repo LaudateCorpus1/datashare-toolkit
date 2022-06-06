@@ -28,7 +28,7 @@ class BigQueryUtil {
     constructor(projectId) {
         this.projectId = projectId;
         const options = {
-            scopes:['https://www.googleapis.com/auth/cloud-platform']
+            scopes: ['https://www.googleapis.com/auth/cloud-platform']
         };
         if (projectId) {
             options.projectId = projectId;
@@ -265,7 +265,9 @@ class BigQueryUtil {
 
         return { metadata, exists, datasetExists, tableExists, error, errorMessage };
     }
-
+    
+    /**
+     */
     async getClient() {
         const auth = new google.auth.GoogleAuth({
             scopes: 'https://www.googleapis.com/auth/cloud-platform'
@@ -719,8 +721,10 @@ class BigQueryUtil {
 
     /**
      * @param  {} labelKey
+     * @param  {} role
+     * TODO: remove role and label filtering from the shared function
      */
-    async getDatasetsByLabel(labelKey) {
+    async getDatasetsByLabel(labelKey, role) {
         let accessTypes = ["userByEmail", "groupByEmail"];
         const [datasets] = await this.bigqueryClient.getDatasets();
         let list = [];
@@ -730,7 +734,7 @@ class BigQueryUtil {
             if (underscore.has(labels, labelKey) || !labelKey) {
                 let accounts = [];
                 metadata.access.forEach(a => {
-                    if (a.role === 'READER') {
+                    if (a.role === role) {
                         const keys = Object.keys(a);
                         if (keys.length === 2) {
                             const accessType = keys[1];
@@ -748,11 +752,10 @@ class BigQueryUtil {
     }
 
     /**
-     * @param  {} projectId
      * @param  {} datasetId
      * @param  {} labelKey
      */
-    async getTablesByLabel(projectId, datasetId, labelKey) {
+    async getTablesByLabel(datasetId, labelKey) {
         let list = [];
         if (datasetId) {
             const dataset = this.bigqueryClient.dataset(datasetId);
@@ -815,14 +818,14 @@ class BigQueryUtil {
     }
 
     /**
-     * @param  {} projectId
      * @param  {} datasetId
+     * @param  {} labelKey
      */
-    async getDatasetsAccessList(projectId, datasetId, labelKey) {
+    async getDatasetsAccessList(datasetId, labelKey) {
         let list = [];
         if (datasetId) {
             const dataset = this.bigqueryClient.dataset(datasetId);
-            const access = await this.getDatasetAccess(projectId, datasetId);
+            const access = await this.getDatasetAccess(datasetId);
             access.forEach((a) => {
                 const keys = Object.keys(a);
                 if (keys.length === 2) {
@@ -833,9 +836,9 @@ class BigQueryUtil {
             });
         }
         else {
-            const datasets = await this.getDatasetsByLabel(projectId, labelKey);
+            const datasets = await this.getDatasetsByLabel(labelKey);
             for (const dataset of datasets) {
-                const access = await this.getDatasetAccess(projectId, dataset.datasetId);
+                const access = await this.getDatasetAccess(dataset.datasetId);
                 // eslint-disable-next-line no-loop-func
                 access.forEach((a) => {
                     const keys = Object.keys(a);
@@ -851,10 +854,9 @@ class BigQueryUtil {
     }
 
     /**
-     * @param  {} projectId
      * @param  {} datasetId
      */
-    async getDatasetAccess(projectId, datasetId) {
+    async getDatasetAccess(datasetId) {
         const dataset = this.bigqueryClient.dataset(datasetId);
         const [metadata] = await dataset.getMetadata();
         const access = metadata.access;
@@ -863,7 +865,10 @@ class BigQueryUtil {
         }
         return access;
     }
-
+    
+    /**
+     * @param  {} name
+     */
     isValidDatasetName(name) {
         let errors = [];
         if (name) {
@@ -880,7 +885,10 @@ class BigQueryUtil {
         let isValid = errors.length === 0;
         return { isValid, errors };
     }
-
+    
+    /**
+     * @param  {} name
+     */
     isValidTableName(name) {
         let errors = [];
         if (name) {
@@ -906,6 +914,18 @@ class BigQueryUtil {
      */
     getTableFqdn(projectId, datasetId, tableId) {
         return `${projectId}.${datasetId}.${tableId}`;
+    }
+
+    /**
+     * @param  {} datasetId
+     * @param  {} tableId
+     * @param  {} fields
+     */
+    async patchTableSchema(datasetId, tableId, fields) {
+        const table = this.bigqueryClient.dataset(datasetId).table(tableId);
+        const [metadata] = await table.getMetadata();
+        metadata.schema.fields = fields;
+        const [result] = await table.setMetadata(metadata);
     }
 }
 
