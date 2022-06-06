@@ -6,16 +6,20 @@ After changing environmental variables, you may have to re-apply the ISTIO polic
 ## UI (ds-frontend-ui)
 | Name | Required | Description | Example |
 |-|-|-|-|
-| VUE_APP_API_BASE_URL | Yes | The base url for the API. | https://api.datashare-demo-2e.fsi.joonix.net/v1alpha |
-| VUE_APP_GOOGLE_APP_CLIENT_ID | Yes | The OAuth Client Id. | 8xxxxxxxxxx-xxxxxxxxxxx.apps.googleusercontent.com |
+| VUE_APP_API_BASE_URL | Yes | The base url for the API. | https://api.datashare.example.com/v1 |
+| VUE_APP_API_KEY | Yes | The api key for IDP. | AIxxxxxxxxxxxxxxxxxxxxxxxZBt4 |
+| VUE_APP_AUTH_DOMAIN | Yes | The auth domain for IDP. | datashare-demo-1.firebaseapp.com |
+| VUE_APP_TENANT_ID | Yes | The tenant Id for IDP authentication | Datashare-ajr0j |
 
 ## API (ds-api)
 | Name | Required | Description | Example |
 |-|-|-|-|
-| DATA_PRODUCERS | Yes | Users that should have administrative access to the Datashare UI. This value needs to remain in sync with the same value applied to the ISTIO policies. It should not be updated manually. | *@google.com |
-| OAUTH_CLIENT_ID | Yes | The OAuth Client Id. | 8xxxxxxxxxx-xxxxxxxxxxx.apps.googleusercontent.com |
-| PROJECT_ID | Yes | The deployed to GCP projectId | cds-demo-2e |
-| UI_BASE_URL | Yes (If marketplace integration is enabled) | The base url for the ui. | https://datashare-demo-2e.fsi.joonix.net |
+| DATA_PRODUCERS | Yes | Users that should have administrative access to the Datashare UI. This value needs to remain in sync with the same value applied to the ISTIO policies. It should not be updated manually. | *@example.com |
+| API_KEY | Yes | The api key for IDP. | AIxxxxxxxxxxxxxxxxxxxxxxxZBt4 |
+| AUTH_DOMAIN | Yes | The auth domain for IDP. | datashare-demo-1.firebaseapp.com |
+| TENANT_ID | Yes | The tenant Id for IDP authentication | Datashare-ajr0j |
+| PROJECT_ID | Yes | The deployed to GCP projectId | cds-demo-2 |
+| UI_BASE_URL | Yes (if marketplace integration is enabled) | The base url for the ui. | https://datashare.example.com |
+| API_CUSTOM_DOMAIN | Yes (if marketplace integration is enabled) | Custom domain for API GCP load balancer | api.datashare.example.com |
 
 # Next
-[Apply ISTIO Policies](./APPLY_ISTIO_POLICIES.md)

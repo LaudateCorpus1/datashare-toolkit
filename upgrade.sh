@@ -1,6 +1,6 @@
 #!/bin/bash -eu
 #
-# Copyright 2019-2020 Google LLC
+# Copyright 2019-2021 Google LLC
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -27,8 +27,8 @@ function finish {
 }
 trap finish EXIT
 
-CUSTOM_ROLE_NAME=custom.ds.api.mgr;
 export MARKETPLACE_INTEGRATION_ENABLED="false";
+export SERVICE_ACCOUNT_NAME=ds-api-mgr;
 
 for i in "$@"; do
     case $i in
@@ -38,6 +38,18 @@ for i in "$@"; do
         ;;
     --oauth-client-id=*)
         export OAUTH_CLIENT_ID="${i#*=}"
+        shift # past argument=value
+        ;;
+    --api-key=*)
+        export API_KEY="${i#*=}"
+        shift # past argument=value
+        ;;
+    --auth-domain=*)
+        export AUTH_DOMAIN="${i#*=}"
+        shift # past argument=value
+        ;;
+    --tenant-id=*)
+        export TENANT_ID="${i#*=}"
         shift # past argument=value
         ;;
     --fqdn=*)
@@ -64,6 +76,10 @@ for i in "$@"; do
         export MARKETPLACE_INTEGRATION_ENABLED="true"
         shift # past argument=value
         ;;
+    --secret-name-prefix)
+        export SECRET_NAME_PREFIX="${i#*=}"
+        shift # past argument=value
+        ;;
     *)
         # unknown option
         echo "Unknown option ${i}"
@@ -83,22 +99,86 @@ if [ -z "$OAUTH_CLIENT_ID" ]; then
     exit 2
 fi
 
+if [ -z "$API_KEY" ]; then
+    echo "--api-key must be supplied"
+    exit 3
+fi
+
+if [ -z "$AUTH_DOMAIN" ]; then
+    echo "--auth-domain must be supplied"
+    exit 4
+fi
+
+if [[ -z "${TENANT_ID:=}" ]]; then
+    echo "--tenant-id must be supplied"
+    exit 5
+fi
+
 if [ -z "$FQDN" ]; then
     echo "--fqdn must be supplied"
-    exit 3
+    exit 6
 fi
 
 if [ -z "$DATA_PRODUCERS" ]; then
     echo "--data-producers must be supplied"
-    exit 4
+    exit 7
 fi
 
-cd api/v1alpha
+cd api/v1
 
 echo "Starting upgrade for $PROJECT_ID";
 npm run deploy
 cd ..
-gcloud iam roles update ${CUSTOM_ROLE_NAME} --project ${PROJECT_ID} --file config/ds-api-mgr-role-definition.yaml --quiet
+
+EXIT_CODE=0
+gcloud iam roles describe custom.ds.api.mgr --project ${PROJECT_ID} || EXIT_CODE=$?
+if [ $EXIT_CODE -eq 0 ]; then
+    gcloud iam roles delete custom.ds.api.mgr --project ${PROJECT_ID} || EXIT_CODE=$?
+fi
+
+EXIT_CODE=0
+gcloud iam roles describe datashare.api.manager --project ${PROJECT_ID} || EXIT_CODE=$?
+if [ $EXIT_CODE -eq 1 ]; then
+    gcloud iam roles create datashare.api.manager --project ${PROJECT_ID} --file config/ds-api-mgr-role-definition.yaml --quiet
+
+    # https://cloud.google.com/sdk/gcloud/reference/projects/add-iam-policy-binding
+    gcloud projects add-iam-policy-binding ${PROJECT_ID} \
+        --member serviceAccount:${SERVICE_ACCOUNT_NAME}@${PROJECT_ID}.iam.gserviceaccount.com \
+        --role="projects/${PROJECT_ID}/roles/datashare.api.manager"
+
+    # https://cloud.google.com/sdk/gcloud/reference/projects/remove-iam-policy-binding
+    gcloud projects remove-iam-policy-binding ${PROJECT_ID} \
+        --member serviceAccount:${SERVICE_ACCOUNT_NAME}@${PROJECT_ID}.iam.gserviceaccount.com \
+        --role="projects/${PROJECT_ID}/roles/custom.ds.api.mgr" || EXIT_CODE=$?
+else
+    gcloud iam roles update datashare.api.manager --project ${PROJECT_ID} --file config/ds-api-mgr-role-definition.yaml --quiet
+fi
+
+EXIT_CODE=0
+# Subscriber custom roles
+gcloud iam roles describe datashare.bigquery.dataViewer --project ${PROJECT_ID} || EXIT_CODE=$?
+if [ $EXIT_CODE -eq 1 ]; then
+    gcloud iam roles create datashare.bigquery.dataViewer --project ${PROJECT_ID} --file config/ds-bigquery-data-viewer-definition.yaml --quiet
+else
+    gcloud iam roles update datashare.bigquery.dataViewer --project ${PROJECT_ID} --file config/ds-bigquery-data-viewer-definition.yaml --quiet
+fi
+
+EXIT_CODE=0
+gcloud iam roles describe datashare.storage.objectViewer --project ${PROJECT_ID} || EXIT_CODE=$?
+if [ $EXIT_CODE -eq 1 ]; then
+    gcloud iam roles create datashare.storage.objectViewer --project ${PROJECT_ID} --file config/ds-storage-object-viewer-definition.yaml --quiet
+else
+    gcloud iam roles update datashare.storage.objectViewer --project ${PROJECT_ID} --file config/ds-storage-object-viewer-definition.yaml --quiet
+fi
+
+EXIT_CODE=0
+gcloud iam roles describe datashare.pubsub.subscriber --project ${PROJECT_ID} || EXIT_CODE=$?
+if [ $EXIT_CODE -eq 1 ]; then
+    gcloud iam roles create datashare.pubsub.subscriber --project ${PROJECT_ID} --file config/ds-pubsub-subscriber-definition.yaml --quiet
+else
+    gcloud iam roles update datashare.pubsub.subscriber --project ${PROJECT_ID} --file config/ds-pubsub-subscriber-definition.yaml --quiet
+fi
+
 cd ../frontend
 npm run deploy
 echo "Completed upgrade for $PROJECT_ID";
