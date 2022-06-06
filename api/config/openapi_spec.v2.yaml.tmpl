@@ -1,0 +1,3790 @@
+swagger: '2.0'
+info:
+  description: This is the Datashare API service that provides data producers the ability to expose subsets of their datasets programatically.
+  title: Datashare API Service
+  version: 1.0.0
+  contact:
+    email: no-reply@google.com
+  license:
+    name: Apache 2.0
+    url: https://github.com/GoogleCloudPlatform/datashare-toolkit/blob/master/LICENSE.txt
+basePath: /v1
+schemes:
+  - http
+  - https
+externalDocs:
+  description: Find out more about Datashare Toolkit
+  url: https://github.com/GoogleCloudPlatform/datashare-toolkit
+x-google-backend:
+  address: https://DS_API_FQDN
+  deadline: 120
+security:
+  - google: []
+  - firebase: []
+  - marketplace: []
+securityDefinitions:
+  apiKeyAuth:
+    type: apiKey
+    name: x-api-key
+    in: header
+  google:
+    type: oauth2
+    authorizationUrl: https://accounts.google.com/o/oauth2/v2/auth
+    flow: implicit
+    scopes:
+      https://www.googleapis.com/auth/cloud-platform: default
+    x-google-issuer: https://accounts.google.com
+    x-google-jwks_uri: https://www.googleapis.com/oauth2/v3/certs
+    x-google-audiences: OAUTH_CLIENT_ID
+  firebase:
+    type: oauth2
+    flow: application
+    tokenUrl: https://oauth2.googleapis.com/token
+    scopes:
+      https://www.googleapis.com/auth/cloud-platform: default
+    x-google-issuer: https://securetoken.google.com/PROJECT_ID
+    x-google-jwks_uri: https://www.googleapis.com/service_accounts/v1/jwk/securetoken@system.gserviceaccount.com
+    x-google-audiences: PROJECT_ID
+  marketplace:
+    type: oauth2
+    flow: application
+    tokenUrl: https://oauth2.googleapis.com/token
+    scopes:
+      https://www.googleapis.com/auth/cloud-platform: default
+    x-google-issuer: https://www.googleapis.com/robot/v1/metadata/x509/cloud-commerce-partner@system.gserviceaccount.com
+    x-google-jwks_uri: https://www.googleapis.com/robot/v1/metadata/jwk/cloud-commerce-partner@system.gserviceaccount.com
+    x-google-audiences: MARKETPLACE_AUDIENCE
+paths:
+  /welcome:
+    options:
+      summary: CORS support
+      description: Enable CORS by returning correct headers
+      operationId: optionsWelcome
+      tags:
+        - welcome
+      security: []
+      produces:
+        - application/json
+      responses:
+        '200':
+          description: Default response for CORS method
+          headers:
+            Access-Control-Allow-Headers:
+              type: string
+            Access-Control-Allow-Methods:
+              type: string
+            Access-Control-Allow-Origin:
+              type: string
+    get:
+      summary: Welcome message status
+      description: Returns a welcome message for the API
+      operationId: getRoot
+      tags:
+        - welcome
+      produces:
+        - application/json
+      responses:
+        '200':
+          description: Welcome Message Response
+          schema:
+            type: object
+            properties:
+              success:
+                type: boolean
+                description: Success of the request
+              code:
+                type: integer
+                description: HTTP status code
+              message:
+                type: string
+                description: Status message
+  /docs:
+    get:
+      summary: Swagger UI for Datashare API OpenAPI Specification
+      description: Returns the Swagger UI with the OpenAPI specification for the Datashare API services
+      operationId: getDocs
+      security: []
+      tags:
+        - docs
+      produces:
+        - text/html
+      responses:
+        '200':
+          description: Welcome Message Response
+          schema:
+            type: object
+  /docs/{content}:
+    get:
+      summary: Swagger UI for Datashare API OpenAPI Specification
+      description: Returns the Swagger UI with the OpenAPI specification for the Datashare API services
+      operationId: getDocsContent
+      security: []
+      parameters:
+        - in: path
+          name: content
+          type: string
+          required: true
+      tags:
+        - docs
+      produces:
+        - text/html
+      responses:
+        '200':
+          description: Welcome Message Response
+          schema:
+            type: object
+  /docs/openapi_spec:
+    get:
+      summary: Datashare API OpenAPI Specification
+      description: Returns the OpenAPI specification for the Datashare API services
+      operationId: getOpenapiSpec
+      security: []
+      tags:
+        - docs
+      produces:
+        - application/json
+      responses:
+        '200':
+          description: Welcome Message Response
+          schema:
+            type: object
+  /*:
+    get:
+      summary: Default 404 Response
+      description: Returns the default 404 response after all other routes exhausted
+      operationId: getAll
+      tags:
+        - default
+      produces:
+        - application/json
+      responses:
+        '404':
+          description: Default 404 Response
+          schema:
+            type: object
+            properties:
+              success:
+                type: boolean
+                default: true
+                description: Success of the request
+              code:
+                type: integer
+                description: HTTP status code
+              message:
+                type: string
+                description: Status message
+  /accounts:
+    options:
+      summary: CORS support
+      description: Enable CORS by returning correct headers
+      operationId: optionsAccounts
+      tags:
+        - accounts
+      security: []
+      produces:
+        - application/json
+      responses:
+        '200':
+          description: Default response for CORS method
+          headers:
+            Access-Control-Allow-Headers:
+              type: string
+            Access-Control-Allow-Methods:
+              type: string
+            Access-Control-Allow-Origin:
+              type: string
+    get:
+      summary: List Account based off request parameters
+      description: Returns the PolicyList response
+      operationId: listAccounts
+      tags:
+        - accounts
+      parameters:
+        - in: header
+          name: x-gcp-project-id
+          type: string
+          required: true
+          description: The GCP projectId of the target project.
+      produces:
+        - application/json
+      responses:
+        '200':
+          description: Account list
+          schema:
+            type: object
+            properties:
+              code:
+                type: integer
+                default: 200
+                description: HTTP status code
+              success:
+                type: boolean
+                description: Success of the request
+              data:
+                type: array
+                items:
+                  $ref: '#/definitions/Account'
+        '500':
+          description: Error
+          schema:
+            $ref: '#/definitions/Error'
+    post:
+      summary: Create Account based off request body
+      description: Returns the Datset response
+      operationId: createAccount
+      tags:
+        - accounts
+      parameters:
+        - in: header
+          name: x-gcp-project-id
+          type: string
+          required: true
+        - in: body
+          name: account
+          description: Request parameters for Account
+          schema:
+            type: object
+            description: Account object
+            properties:
+              email:
+                type: string
+                description: Account email address
+              emailType:
+                $ref: '#/definitions/EmailType'
+              policies:
+                type: array
+                items:
+                  type: string
+                  description: Policy Id
+              marketplace:
+                $ref: '#/definitions/Marketplace'
+      responses:
+        '201':
+          description: Account
+          schema:
+            $ref: '#/definitions/ModifyAccountResponse'
+        '500':
+          description: Error
+          schema:
+            $ref: '#/definitions/Error'
+  /accounts/{accountId}:
+    options:
+      summary: CORS support
+      description: Enable CORS by returning correct headers
+      operationId: optionsAccountByAccountId
+      tags:
+        - accounts
+      security: []
+      parameters:
+        - in: path
+          name: accountId
+          type: string
+          required: true
+          description: Account Id of the Account request
+      produces:
+        - application/json
+      responses:
+        '200':
+          description: Default response for CORS method
+          headers:
+            Access-Control-Allow-Headers:
+              type: string
+            Access-Control-Allow-Methods:
+              type: string
+            Access-Control-Allow-Origin:
+              type: string
+    get:
+      summary: Get Account based off accountId
+      description: Returns the Datset response
+      operationId: getAccountByAccountId
+      tags:
+        - accounts
+      parameters:
+        - in: header
+          name: x-gcp-project-id
+          type: string
+          required: true
+        - in: path
+          name: accountId
+          type: string
+          required: true
+          description: Account Id of the Account request
+      produces:
+        - application/json
+      responses:
+        '200':
+          description: Account
+          schema:
+            type: object
+            properties:
+              code:
+                type: integer
+                default: 200
+                description: HTTP status code
+              success:
+                type: boolean
+                description: Success of the request
+              data:
+                $ref: '#/definitions/Account'
+        '404':
+          description: Error
+          schema:
+            $ref: '#/definitions/Error'
+    put:
+      summary: Update Account based off account ID and request body
+      description: Returns the Account response
+      operationId: updateAccountByAccountId
+      tags:
+        - accounts
+      parameters:
+        - in: path
+          name: accountId
+          type: string
+          required: true
+          description: Account Id of the Account request
+        - in: header
+          name: x-gcp-project-id
+          type: string
+          required: true
+        - in: body
+          name: account
+          description: Request parameters for Account
+          schema:
+            type: object
+            description: Account object
+            properties:
+              rowId:
+                type: string
+                description: The rowId of the modified account
+              email:
+                type: string
+                description: Account email address
+              emailType:
+                $ref: '#/definitions/EmailType'
+              policies:
+                type: array
+                items:
+                  type: string
+                  description: Policy Id
+              marketplace:
+                $ref: '#/definitions/Marketplace'
+      produces:
+        - application/json
+      responses:
+        '200':
+          description: Account
+          schema:
+            type: object
+            properties:
+              code:
+                type: integer
+                description: HTTP status code
+              success:
+                type: boolean
+                description: Success of the request
+              data:
+                $ref: '#/definitions/ModifyAccountResponse'
+        '500':
+          description: Error
+          schema:
+            $ref: '#/definitions/Error'
+    delete:
+      summary: Delete Account based off account ID and request body
+      description: Returns the Account response
+      operationId: deleteAccountByAccountId
+      tags:
+        - accounts
+      parameters:
+        - in: path
+          name: accountId
+          type: string
+          required: true
+          description: Account Id of the Account request
+        - in: header
+          name: x-gcp-project-id
+          type: string
+          required: true
+        - in: body
+          name: account
+          description: Request parameters for Account deletion
+          schema:
+            type: object
+            properties:
+              rowId:
+                type: string
+                description: The rowId of the account to delete
+      produces:
+        - application/json
+      responses:
+        '200':
+          description: Account
+          schema:
+            type: object
+            properties:
+              success:
+                type: boolean
+                description: Success of the request
+              code:
+                type: integer
+                description: HTTP status code
+        '500':
+          description: Error
+          schema:
+            $ref: '#/definitions/Error'
+  /policies/{policyId}/accounts:
+    options:
+      summary: CORS support
+      description: Enable CORS by returning correct headers
+      operationId: optionsAccountByPolicyId
+      tags:
+        - policies
+      security: []
+      parameters:
+        - in: path
+          name: policyId
+          type: string
+          required: true
+          description: Policy Id of the Policy request
+      produces:
+        - application/json
+      responses:
+        '200':
+          description: Default response for CORS method
+          headers:
+            Access-Control-Allow-Headers:
+              type: string
+            Access-Control-Allow-Methods:
+              type: string
+            Access-Control-Allow-Origin:
+              type: string
+    get:
+      summary: List Accounts of policy based off policyId and request parameters
+      description: Returns the Account list response
+      operationId: listAccountsByPolicyId
+      tags:
+        - policies
+      parameters:
+        - in: path
+          name: policyId
+          type: string
+          required: true
+          description: Policy Id of the Policy request
+        - in: header
+          name: x-gcp-project-id
+          type: string
+          required: true
+      produces:
+        - application/json
+      responses:
+        '200':
+          description: Account list
+          schema:
+            type: object
+            properties:
+              code:
+                type: integer
+                default: 200
+                description: HTTP status code
+              success:
+                type: boolean
+                description: Success of the request
+              data:
+                type: array
+                items:
+                  type: object
+                  description: Account object
+                  properties:
+                    email:
+                      type: string
+                      description: Account email address
+                    emailType:
+                      $ref: '#/definitions/EmailType'
+                    marketplace:
+                      $ref: '#/definitions/Marketplace'
+                    marketplaceSynced:
+                      type: boolean
+                      description: Indicates if marketplace entitlements are in sync for account
+                    marketplaceActivated:
+                      type: boolean
+                      description: Indicates if account is linked and activated in marketplace
+                  required:
+                    - email
+                    - emailType
+                    - accountType
+        '500':
+          description: Error
+          schema:
+            $ref: '#/definitions/Error'
+  /datasets/{datasetId}/accounts:
+    options:
+      summary: CORS support
+      description: Enable CORS by returning correct headers
+      operationId: optionsAccountByDatasetId
+      security: []
+      tags:
+        - datasets
+      parameters:
+        - in: path
+          name: datasetId
+          type: string
+          required: true
+          description: Dataset Id of the Account request
+      produces:
+        - application/json
+      responses:
+        '200':
+          description: Default response for CORS method
+          headers:
+            Access-Control-Allow-Headers:
+              type: string
+            Access-Control-Allow-Methods:
+              type: string
+            Access-Control-Allow-Origin:
+              type: string
+    get:
+      summary: List Accounts based off datasetId and request parameters
+      description: Returns the AccountList response
+      operationId: listAccountsByDatasetId
+      tags:
+        - datasets
+      parameters:
+        - in: path
+          name: datasetId
+          type: string
+          required: true
+          description: Dataset Id of the Policy request
+        - in: header
+          name: x-gcp-project-id
+          type: string
+          required: true
+      produces:
+        - application/json
+      responses:
+        '200':
+          description: Account list
+          schema:
+            type: object
+            properties:
+              code:
+                type: integer
+                default: 200
+                description: HTTP status code
+              success:
+                type: boolean
+                description: Success of the request
+              data:
+                type: array
+                items:
+                  $ref: '#/definitions/Account'
+        '500':
+          description: Error
+          schema:
+            $ref: '#/definitions/Error'
+  /accounts:register:
+    options:
+      summary: CORS support
+      description: Enable CORS by returning correct headers
+      operationId: optionsRegisterAccountGet
+      tags:
+        - accounts
+      security: []
+      produces:
+        - application/json
+      responses:
+        '200':
+          description: Default response for CORS method
+          headers:
+            Access-Control-Allow-Headers:
+              type: string
+            Access-Control-Allow-Methods:
+              type: string
+            Access-Control-Allow-Origin:
+              type: string
+    get:
+      summary: Register a marketplace account based off request body
+      description: Returns a redirect response
+      operationId: registerAccountGet
+      security: []
+      tags:
+        - accounts
+      parameters:
+        - in: header
+          name: x-gcp-project-id
+          type: string
+          required: true
+        - in: query
+          name: projectId
+          type: string
+          description: The projectId
+          required: false
+        - in: query
+          name: x-gcp-marketplace-token
+          type: string
+          description: JWT token provided by marketplace
+          required: true
+      responses:
+        '301':
+          description: Account
+          headers:
+            Set-Cookie:
+              type: string
+              description: 'Example: gmt=jwt_token'
+            location:
+              type: string
+              description: If activation success, will redirect to activation page. If activation fails, will redirect to activation error page.
+    post:
+      summary: Register a marketplace account based off request body
+      description: Returns a redirect response
+      operationId: registerAccount
+      security: []
+      tags:
+        - accounts
+      parameters:
+        - in: header
+          name: x-gcp-project-id
+          type: string
+          required: true
+        - in: query
+          name: projectId
+          type: string
+          description: The projectId
+          required: false
+        - in: body
+          name: account
+          description: Request parameters for register account
+          schema:
+            type: object
+            properties:
+              x-gcp-marketplace-token:
+                type: string
+                description: GCP marketplace JWT
+      responses:
+        '301':
+          description: Account
+          headers:
+            Set-Cookie:
+              type: string
+              description: 'Example: gmt=jwt_token'
+            location:
+              type: string
+              description: If activation success, will redirect to activation page. If activation fails, will redirect to activation error page.
+  /accounts:activate:
+    options:
+      summary: CORS support
+      description: Enable CORS by returning correct headers
+      operationId: optionsActivateAccount
+      tags:
+        - accounts
+      security: []
+      produces:
+        - application/json
+      responses:
+        '200':
+          description: Default response for CORS method
+          headers:
+            Access-Control-Allow-Headers:
+              type: string
+            Access-Control-Allow-Methods:
+              type: string
+            Access-Control-Allow-Origin:
+              type: string
+    post:
+      summary: Activates a marketplace account based off request body
+      description: Returns a redirect response
+      operationId: activateAccount
+      tags:
+        - accounts
+      parameters:
+        - in: header
+          name: x-gcp-project-id
+          type: string
+          required: true
+        - in: body
+          name: account
+          description: Request parameters for Account
+          schema:
+            type: object
+            description: Account object
+            properties:
+              email:
+                type: string
+                description: Email account for approval
+              reason:
+                type: string
+                description: Procurement approval reason
+      responses:
+        '200':
+          description: Account
+          schema:
+            type: object
+            properties:
+              success:
+                type: boolean
+                description: Success of the request
+              code:
+                type: integer
+                description: HTTP status code
+              data:
+                type: object
+                items:
+                  $ref: '#/definitions/Account'
+        '500':
+          description: Error
+          schema:
+            $ref: '#/definitions/Error'
+  /accounts:reset:
+    options:
+      summary: CORS support
+      description: Enable CORS by returning correct headers
+      operationId: optionsResetAccount
+      tags:
+        - accounts
+      security: []
+      produces:
+        - application/json
+      responses:
+        '200':
+          description: Default response for CORS method
+          headers:
+            Access-Control-Allow-Headers:
+              type: string
+            Access-Control-Allow-Methods:
+              type: string
+            Access-Control-Allow-Origin:
+              type: string
+    post:
+      summary: Resets a marketplace account based off request body
+      description: Returns a redirect response
+      operationId: resetAccount
+      tags:
+        - accounts
+      parameters:
+        - in: header
+          name: x-gcp-project-id
+          type: string
+          required: true
+        - in: body
+          name: account
+          description: Request parameters for Account
+          schema:
+            type: object
+            description: Account object
+            properties:
+              accountId:
+                type: string
+                description: The datashare accountId
+      responses:
+        '200':
+          description: Account
+          schema:
+            type: object
+            properties:
+              success:
+                type: boolean
+                description: Success of the request
+              code:
+                type: integer
+                description: HTTP status code
+              data:
+                type: object
+                items:
+                  $ref: '#/definitions/Account'
+        '500':
+          description: Error
+          schema:
+            $ref: '#/definitions/Error'
+  /accounts:syncMarketplace:
+    options:
+      summary: CORS support
+      description: Enable CORS by returning correct headers
+      operationId: optionsSyncMarketplace
+      tags:
+        - accounts
+      security: []
+      produces:
+        - application/json
+      responses:
+        '200':
+          description: Default response for CORS method
+          headers:
+            Access-Control-Allow-Headers:
+              type: string
+            Access-Control-Allow-Methods:
+              type: string
+            Access-Control-Allow-Origin:
+              type: string
+    post:
+      summary: Syncs a marketplace account permissions based off request body
+      description: Returns a redirect response
+      operationId: syncMarketplaceAccount
+      tags:
+        - accounts
+      parameters:
+        - in: header
+          name: x-gcp-project-id
+          type: string
+          required: true
+        - in: body
+          name: account
+          description: Request parameters for Account
+          schema:
+            type: object
+            description: Account object
+            properties:
+              accountId:
+                type: string
+                description: The datashare accountId
+      responses:
+        '200':
+          description: Account
+          schema:
+            type: object
+            properties:
+              success:
+                type: boolean
+                description: Success of the request
+              code:
+                type: integer
+                description: HTTP status code
+        '500':
+          description: Error
+          schema:
+            $ref: '#/definitions/Error'
+  /admin:initSchema:
+    options:
+      summary: CORS support
+      description: Enable CORS by returning correct headers
+      operationId: optionsInitSchema
+      tags:
+        - admin
+      security: []
+      produces:
+        - application/json
+      responses:
+        '200':
+          description: Default response for CORS method
+          headers:
+            Access-Control-Allow-Headers:
+              type: string
+            Access-Control-Allow-Methods:
+              type: string
+            Access-Control-Allow-Origin:
+              type: string
+    post:
+      summary: Initialize the Datashare schema creation
+      description: Returns the schema creation response
+      operationId: initSchema
+      tags:
+        - admin
+      parameters:
+        - in: header
+          name: x-gcp-project-id
+          type: string
+          required: true
+      produces:
+        - application/json
+      responses:
+        '200':
+          description: initSchema response
+          schema:
+            type: object
+            properties:
+              success:
+                type: boolean
+                description: Success of the request
+              code:
+                type: integer
+                description: HTTP status code
+              data:
+                type: object
+        '500':
+          description: Error
+          schema:
+            $ref: '#/definitions/Error'
+  /admin:syncResources:
+    options:
+      summary: CORS support
+      description: Enable CORS by returning correct headers
+      operationId: optionsSyncResources
+      tags:
+        - admin
+      security: []
+      produces:
+        - application/json
+      responses:
+        '200':
+          description: Default response for CORS method
+          headers:
+            Access-Control-Allow-Headers:
+              type: string
+            Access-Control-Allow-Methods:
+              type: string
+            Access-Control-Allow-Origin:
+              type: string
+    post:
+      summary: Syncronize the Datashare resources and metadata
+      description: Returns the syncronize resources response
+      operationId: syncResources
+      tags:
+        - admin
+      parameters:
+        - in: header
+          name: x-gcp-project-id
+          type: string
+          required: true
+        - in: body
+          name: syncronize_resources
+          description: Request parameters for Syncronize Resources
+          schema:
+            type: object
+            properties:
+              type:
+                type: string
+                description: Syncronize Resources Type
+                enum:
+                  - ALL
+                  - BIGQUERY_PERMISSIONS
+                  - BIGQUERY_VIEWS
+                  - MARKETPLACE
+                  - STORAGE_BUCKET_PERMISSIONS
+                  - TOPIC_PERMISSIONS
+      produces:
+        - application/json
+      responses:
+        '200':
+          description: Syncronize resources response
+          schema:
+            type: object
+            properties:
+              success:
+                type: boolean
+                description: Success of the request
+              code:
+                type: integer
+                description: HTTP status code
+              data:
+                type: object
+                description: Response data
+        '404':
+          description: Error
+          schema:
+            $ref: '#/definitions/Error'
+        '500':
+          description: Error
+          schema:
+            $ref: '#/definitions/Error'
+  /admin/applicationUsers:
+    options:
+      summary: CORS support
+      description: Enable CORS by returning correct headers
+      operationId: optionsGetApplicationUsers
+      security: []
+      tags:
+        - admin
+      produces:
+        - application/json
+      responses:
+        '200':
+          description: Default response for CORS method
+          headers:
+            Access-Control-Allow-Headers:
+              type: string
+            Access-Control-Allow-Methods:
+              type: string
+            Access-Control-Allow-Origin:
+              type: string
+    get:
+      summary: Get Application User Resources
+      description: Returns the Application Users Resource response
+      operationId: getApplicationUsers
+      tags:
+        - admin
+      parameters:
+        - in: header
+          name: x-gcp-project-id
+          type: string
+          required: true
+      produces:
+        - application/json
+      responses:
+        '200':
+          description: Application Users Resource
+          schema:
+            type: object
+            properties:
+              success:
+                type: boolean
+                description: Success of the request
+              data:
+                type: array
+                items:
+                  type: object
+                  description: User Resource object
+                  properties:
+                    uid:
+                      type: string
+                      description: IDP uid
+                    displayName:
+                      type: string
+                      description: User display name
+                    email:
+                      type: string
+                      description: User email address
+                    emailVerified:
+                      type: boolean
+                      description: Flag indicating if email address is verified
+                    disabled:
+                      type: boolean
+                      description: Flag indicating if account is disabled
+                    photoURL:
+                      type: string
+                      description: Photo URL for the account
+                    customClaims:
+                      type: object
+                      properties:
+                        role:
+                          type: string
+                    lastSignInTime:
+                      type: string
+                      description: Last sign in time for the account
+                    creationTime:
+                      type: string
+                      description: Creation time for the account
+        '500':
+          description: Error
+          schema:
+            $ref: '#/definitions/Error'
+  /datasets:
+    options:
+      summary: CORS support
+      description: Enable CORS by returning correct headers
+      operationId: optionsDatasets
+      security: []
+      tags:
+        - datasets
+      produces:
+        - application/json
+      responses:
+        '200':
+          description: Default response for CORS method
+          headers:
+            Access-Control-Allow-Headers:
+              type: string
+            Access-Control-Allow-Methods:
+              type: string
+            Access-Control-Allow-Origin:
+              type: string
+    get:
+      summary: List Dataset based off request parameters
+      description: Returns the DatsetList response
+      operationId: listDatasets
+      parameters:
+        - in: header
+          name: x-gcp-project-id
+          type: string
+          required: true
+          description: The GCP projectId of the target project.
+        - in: query
+          name: includeAll
+          type: boolean
+          default: false
+          description: Indicates if all datasets including non-Datashare managed datasets should be returned. Default is false.
+      tags:
+        - datasets
+      produces:
+        - application/json
+      responses:
+        '200':
+          description: Dataset list
+          schema:
+            type: object
+            properties:
+              code:
+                type: integer
+                default: 200
+                description: HTTP status code
+              success:
+                type: boolean
+                description: Success of the request
+              data:
+                type: array
+                items:
+                  $ref: '#/definitions/Dataset'
+        '500':
+          description: Error
+          schema:
+            $ref: '#/definitions/Error'
+    post:
+      summary: Create Dataset based off request body
+      description: Returns the Dataset response
+      operationId: createDataset
+      tags:
+        - datasets
+      parameters:
+        - in: header
+          name: x-gcp-project-id
+          type: string
+          required: true
+          description: The GCP projectId of the target project.
+        - in: body
+          name: dataset
+          description: Request parameters for Dataset
+          schema:
+            type: object
+            description: Dataset object
+            properties:
+              datasetId:
+                type: string
+                description: The BigQuery datasetId.
+              description:
+                type: string
+                description: Description of the dataset.
+      produces:
+        - application/json
+      responses:
+        '201':
+          description: Dataset
+          schema:
+            type: object
+            properties:
+              code:
+                type: integer
+                description: HTTP status code
+              success:
+                type: boolean
+                description: Success of the request
+              data:
+                type: object
+                properties:
+                  metadata:
+                    type: object
+                    description: BigQuery metadata for object
+        '404':
+          description: Error
+          schema:
+            $ref: '#/definitions/Error'
+        '500':
+          description: Error
+          schema:
+            $ref: '#/definitions/Error'
+  /datasets/{datasetId}:
+    put:
+      summary: Update Dataset based off request body
+      description: Returns the Dataset response
+      operationId: updateDataset
+      tags:
+        - datasets
+      parameters:
+        - in: header
+          name: x-gcp-project-id
+          type: string
+          required: true
+        - in: path
+          name: datasetId
+          type: string
+          required: true
+          description: Dataset Id of the Dataset request
+        - in: body
+          name: dataset
+          description: Request parameters for Dataset
+          schema:
+            type: object
+            description: Dataset object
+            properties:
+              datasetId:
+                type: string
+                description: The BigQuery datasetId.
+              description:
+                type: string
+                description: Description of the dataset.
+      produces:
+        - application/json
+      responses:
+        '200':
+          description: Dataset
+          schema:
+            type: object
+            properties:
+              success:
+                type: boolean
+                description: Success of the request
+              code:
+                type: integer
+                description: HTTP status code
+              data:
+                type: object
+                items:
+                  $ref: '#/definitions/Dataset'
+        '500':
+          description: Error
+          schema:
+            $ref: '#/definitions/Error'
+    options:
+      summary: CORS support
+      description: Enable CORS by returning correct headers
+      operationId: optionsGetDatasetByDatasetId
+      security: []
+      tags:
+        - datasets
+      parameters:
+        - in: path
+          name: datasetId
+          type: string
+          required: true
+          description: Dataset Id of the Dataset request
+      produces:
+        - application/json
+      responses:
+        '200':
+          description: Default response for CORS method
+          headers:
+            Access-Control-Allow-Headers:
+              type: string
+            Access-Control-Allow-Methods:
+              type: string
+            Access-Control-Allow-Origin:
+              type: string
+    get:
+      summary: Get Dataset based off datasetId
+      description: Returns the Dataset response
+      operationId: getDatasetByDatasetId
+      tags:
+        - datasets
+      parameters:
+        - in: path
+          name: datasetId
+          type: string
+          required: true
+          description: Dataset Id of the Dataset request
+        - in: header
+          name: x-gcp-project-id
+          type: string
+          required: true
+      produces:
+        - application/json
+      responses:
+        '200':
+          description: Dataset
+          schema:
+            type: object
+            properties:
+              code:
+                type: integer
+                default: 200
+                description: HTTP status code
+              success:
+                type: boolean
+                description: Success of the request
+              data:
+                type: object
+                description: Dataset object
+                properties:
+                  datasetId:
+                    type: string
+                    description: The BigQuery datasetId.
+                  description:
+                    type: string
+                    description: Description of the dataset.
+                  modifiedAt:
+                    type: integer
+                    description: The last modified timestamp.
+        '500':
+          description: Error
+          schema:
+            $ref: '#/definitions/Error'
+    delete:
+      summary: Delete Dataset based off dataset ID and request body
+      description: Returns the Account response
+      operationId: deleteDatasetByDatasetId
+      tags:
+        - datasets
+      parameters:
+        - in: path
+          name: datasetId
+          type: string
+          required: true
+          description: Dataset Id of the Dataset request
+        - in: header
+          name: x-gcp-project-id
+          type: string
+          required: true
+      produces:
+        - application/json
+      responses:
+        '200':
+          description: Dataset
+          schema:
+            type: object
+            properties:
+              success:
+                type: boolean
+                description: Success of the request
+              code:
+                type: integer
+                description: HTTP status code
+              data:
+                type: object
+                items:
+                  $ref: '#/definitions/Dataset'
+        '500':
+          description: Error
+          schema:
+            $ref: '#/definitions/Error'
+  /datasets/{datasetId}/tables:
+    options:
+      summary: CORS support
+      description: Enable CORS by returning correct headers
+      operationId: optionsListDatasetTablesByDatasetId
+      security: []
+      tags:
+        - datasets
+      parameters:
+        - in: path
+          name: datasetId
+          type: string
+          required: true
+          description: Dataset Id of the Dataset request
+      produces:
+        - application/json
+      responses:
+        '200':
+          description: Default response for CORS method
+          headers:
+            Access-Control-Allow-Headers:
+              type: string
+            Access-Control-Allow-Methods:
+              type: string
+            Access-Control-Allow-Origin:
+              type: string
+    get:
+      summary: List Dataset Tables based off datasetId
+      description: Returns the Datset Tables response
+      operationId: listDatasetTablesByDatasetId
+      tags:
+        - datasets
+      parameters:
+        - in: path
+          name: datasetId
+          type: string
+          required: true
+          description: Dataset Id of the Dataset request
+        - in: header
+          name: x-gcp-project-id
+          type: string
+          required: true
+      produces:
+        - application/json
+      responses:
+        '200':
+          description: Tables
+          schema:
+            type: object
+            properties:
+              code:
+                type: integer
+                default: 200
+                description: HTTP status code
+              success:
+                type: boolean
+                description: Success of the request
+              data:
+                type: array
+                items:
+                  type: object
+                  description: Table object
+                  properties:
+                    datasetId:
+                      type: string
+                      description: Dataset ID
+                    tableId:
+                      type: string
+                      description: Table ID
+                    type:
+                      type: string
+                      description: The BigQuery object type
+                      enum:
+                        - TABLE
+                        - VIEW
+        '500':
+          description: Error
+          schema:
+            $ref: '#/definitions/Error'
+  /datasets/{datasetId}/tables/{tableId}/columns:
+    options:
+      summary: CORS support
+      description: Enable CORS by returning correct headers
+      operationId: optionsListDatasetTableColumnssByDatasetId
+      security: []
+      tags:
+        - datasets
+      parameters:
+        - in: path
+          name: datasetId
+          type: string
+          required: true
+          description: Dataset Id of the Dataset request
+        - in: path
+          name: tableId
+          type: string
+          required: true
+          description: Table Id of the Dataset request
+      produces:
+        - application/json
+      responses:
+        '200':
+          description: Default response for CORS method
+          headers:
+            Access-Control-Allow-Headers:
+              type: string
+            Access-Control-Allow-Methods:
+              type: string
+            Access-Control-Allow-Origin:
+              type: string
+    get:
+      summary: List Dataset Table Columns based off datasetId
+      description: Returns the Datset Table Columns response
+      operationId: listDatasetTableColumnssByDatasetId
+      tags:
+        - datasets
+      parameters:
+        - in: path
+          name: datasetId
+          type: string
+          required: true
+          description: Dataset Id of the Dataset request
+        - in: path
+          name: tableId
+          type: string
+          required: true
+          description: Table Id of the Dataset request
+        - in: header
+          name: x-gcp-project-id
+          type: string
+          required: true
+      produces:
+        - application/json
+      responses:
+        '200':
+          description: Columns
+          schema:
+            type: object
+            properties:
+              code:
+                type: integer
+                default: 200
+                description: HTTP status code
+              success:
+                type: boolean
+                description: Success of the request
+              data:
+                type: array
+                items:
+                  type: string
+                  description: The column name
+        '500':
+          description: Error
+          schema:
+            $ref: '#/definitions/Error'
+  /views:
+    options:
+      summary: CORS support
+      description: Enable CORS by returning correct headers
+      operationId: optionsListViews
+      security: []
+      tags:
+        - datasets
+      produces:
+        - application/json
+      responses:
+        '200':
+          description: Default response for CORS method
+          headers:
+            Access-Control-Allow-Headers:
+              type: string
+            Access-Control-Allow-Methods:
+              type: string
+            Access-Control-Allow-Origin:
+              type: string
+    get:
+      summary: List Views based off request parameters
+      description: Returns the View response
+      operationId: listViews
+      parameters:
+        - in: header
+          name: x-gcp-project-id
+          type: string
+          required: true
+      tags:
+        - datasets
+      produces:
+        - application/json
+      responses:
+        '200':
+          description: View list
+          schema:
+            type: object
+            properties:
+              code:
+                type: integer
+                default: 200
+                description: HTTP status code
+              success:
+                type: boolean
+                description: Success of the request
+              data:
+                type: array
+                items:
+                  $ref: '#/definitions/View'
+        '500':
+          description: Error
+          schema:
+            $ref: '#/definitions/Error'
+  /datasets/{datasetId}/views:
+    options:
+      summary: CORS support
+      description: Enable CORS by returning correct headers
+      operationId: optionsListDatasetViewsByDatasetId
+      security: []
+      tags:
+        - datasets
+      parameters:
+        - in: path
+          name: datasetId
+          type: string
+          required: true
+          description: Dataset Id of the Dataset request
+      produces:
+        - application/json
+      responses:
+        '200':
+          description: Default response for CORS method
+          headers:
+            Access-Control-Allow-Headers:
+              type: string
+            Access-Control-Allow-Methods:
+              type: string
+            Access-Control-Allow-Origin:
+              type: string
+    get:
+      summary: List Dataset Views based off datasetId
+      description: Returns the Datset Views response
+      operationId: listDatasetViewsByDatasetId
+      tags:
+        - datasets
+      parameters:
+        - in: path
+          name: datasetId
+          type: string
+          required: true
+          description: Dataset Id of the Dataset request
+        - in: header
+          name: x-gcp-project-id
+          type: string
+          required: true
+      produces:
+        - application/json
+      responses:
+        '200':
+          description: Views
+          schema:
+            type: object
+            properties:
+              success:
+                type: boolean
+                description: Success of the request
+              code:
+                type: integer
+                default: 200
+                description: HTTP status code
+              data:
+                type: array
+                items:
+                  $ref: '#/definitions/View'
+        '500':
+          description: Error
+          schema:
+            $ref: '#/definitions/Error'
+    post:
+      summary: Create Dataset View based off datasetId
+      description: Returns the Datset Views response
+      operationId: createDatasetViewByDatasetId
+      tags:
+        - datasets
+      parameters:
+        - in: path
+          name: datasetId
+          type: string
+          required: true
+          description: Dataset Id of the Dataset request
+        - in: header
+          name: x-gcp-project-id
+          type: string
+          required: true
+        - in: body
+          name: view
+          description: Request parameters for Dataset View
+          schema:
+            $ref: '#/definitions/View'
+      produces:
+        - application/json
+      responses:
+        '201':
+          description: View
+          schema:
+            type: object
+            properties:
+              success:
+                type: boolean
+                description: Success of the request
+              code:
+                type: integer
+                default: 200
+                description: HTTP status code
+              data:
+                $ref: '#/definitions/View'
+        '500':
+          description: Error
+          schema:
+            $ref: '#/definitions/Error'
+  /datasets/{datasetId}/views/{viewId}:
+    options:
+      summary: CORS support
+      description: Enable CORS by returning correct headers
+      operationId: optionsGetDatasetViewByDatasetId
+      security: []
+      tags:
+        - datasets
+      parameters:
+        - in: path
+          name: datasetId
+          type: string
+          required: true
+          description: Dataset Id of the Dataset request
+        - in: path
+          name: viewId
+          type: string
+          required: true
+          description: Dataset View Id of the Dataset request
+      produces:
+        - application/json
+      responses:
+        '200':
+          description: Default response for CORS method
+          headers:
+            Access-Control-Allow-Headers:
+              type: string
+            Access-Control-Allow-Methods:
+              type: string
+            Access-Control-Allow-Origin:
+              type: string
+    get:
+      summary: Get Dataset View based off datasetId
+      description: Returns the Datset Views response
+      operationId: getDatasetViewByDatasetId
+      tags:
+        - datasets
+      parameters:
+        - in: path
+          name: datasetId
+          type: string
+          required: true
+          description: Dataset Id for the request
+        - in: path
+          name: viewId
+          type: string
+          required: true
+          description: Authorized View Id for the request
+        - in: header
+          name: x-gcp-project-id
+          type: string
+          required: true
+      produces:
+        - application/json
+      responses:
+        '200':
+          description: View
+          schema:
+            type: object
+            properties:
+              success:
+                type: boolean
+                description: Success of the request
+              code:
+                type: integer
+                default: 200
+                description: HTTP status code
+              data:
+                $ref: '#/definitions/View'
+        '500':
+          description: Error
+          schema:
+            $ref: '#/definitions/Error'
+    put:
+      summary: Update Dataset View based off datasetId
+      description: Returns the Datset Views response
+      operationId: updateDatasetViewByDatasetId
+      tags:
+        - datasets
+      parameters:
+        - in: path
+          name: datasetId
+          type: string
+          required: true
+          description: Dataset Id of the update request
+        - in: path
+          name: viewId
+          type: string
+          required: true
+          description: View Id of the update request
+        - in: header
+          name: x-gcp-project-id
+          type: string
+          required: true
+      produces:
+        - application/json
+      responses:
+        '200':
+          description: View
+          schema:
+            type: object
+            properties:
+              success:
+                type: boolean
+                description: Success of the request
+              code:
+                type: integer
+                default: 200
+                description: HTTP status code
+              data:
+                $ref: '#/definitions/View'
+        '500':
+          description: Error
+          schema:
+            $ref: '#/definitions/Error'
+    delete:
+      summary: Delete Dataset View based off datasetId
+      description: Returns the Datset Views response
+      operationId: deleteDatasetViewByDatasetId
+      tags:
+        - datasets
+      parameters:
+        - in: path
+          name: datasetId
+          type: string
+          required: true
+          description: Dataset Id of the Dataset request
+        - in: path
+          name: viewId
+          type: string
+          required: true
+          description: Dataset View Id of the Dataset request
+        - in: header
+          name: x-gcp-project-id
+          type: string
+          required: true
+        - in: body
+          name: view
+          required: true
+          schema:
+            type: object
+            properties:
+              rowId:
+                type: string
+                description: The view id
+      produces:
+        - application/json
+      responses:
+        '200':
+          description: View
+          schema:
+            type: object
+            properties:
+              success:
+                type: boolean
+                description: Success of the request
+              code:
+                type: integer
+                default: 200
+                description: HTTP status code
+              data:
+                $ref: '#/definitions/View'
+        '500':
+          description: Error
+          schema:
+            $ref: '#/definitions/Error'
+  /datasets/{datasetId}/views:validate:
+    options:
+      summary: CORS support
+      description: Enable CORS by returning correct headers
+      operationId: optionsValidateDatasetViewByDatasetId
+      security: []
+      tags:
+        - datasets
+      parameters:
+        - in: path
+          name: datasetId
+          type: string
+          required: true
+          description: Dataset Id of the Dataset request
+      produces:
+        - application/json
+      responses:
+        '200':
+          description: Default response for CORS method
+          headers:
+            Access-Control-Allow-Headers:
+              type: string
+            Access-Control-Allow-Methods:
+              type: string
+            Access-Control-Allow-Origin:
+              type: string
+    post:
+      summary: Validate Dataset View based off datasetId
+      description: Returns the Datset Views response
+      operationId: validateDatasetViewByDatasetId
+      tags:
+        - datasets
+      parameters:
+        - in: path
+          name: datasetId
+          type: string
+          required: true
+          description: Dataset Id of the Dataset request
+        - in: header
+          name: x-gcp-project-id
+          type: string
+          required: true
+        - in: body
+          name: view
+          description: Request parameters for Dataset Views validate
+          schema:
+            $ref: '#/definitions/View'
+      produces:
+        - application/json
+      responses:
+        '200':
+          description: View
+          schema:
+            type: object
+            properties:
+              success:
+                type: boolean
+                description: Success of the request
+              code:
+                type: integer
+                default: 200
+                description: HTTP status code
+              data:
+                $ref: '#/definitions/View'
+        '500':
+          description: Error
+          schema:
+            $ref: '#/definitions/Error'
+  /policies:
+    options:
+      summary: CORS support
+      description: Enable CORS by returning correct headers
+      operationId: optionsPolicies
+      tags:
+        - policies
+      security: []
+      produces:
+        - application/json
+      responses:
+        '200':
+          description: Default response for CORS method
+          headers:
+            Access-Control-Allow-Headers:
+              type: string
+            Access-Control-Allow-Methods:
+              type: string
+            Access-Control-Allow-Origin:
+              type: string
+    get:
+      summary: List Policy based off request parameters
+      description: Returns the DatsetList response
+      operationId: listPolicies
+      parameters:
+        - in: header
+          name: x-gcp-project-id
+          type: string
+          required: true
+      tags:
+        - policies
+      produces:
+        - application/json
+      responses:
+        '200':
+          description: Policy list
+          schema:
+            type: object
+            properties:
+              success:
+                type: boolean
+                description: Success of the request
+              code:
+                type: integer
+                default: 200
+                description: HTTP status code
+              data:
+                type: array
+                items:
+                  $ref: '#/definitions/Policy'
+        '500':
+          description: Error
+          schema:
+            $ref: '#/definitions/Error'
+    post:
+      summary: Create Policy based off request body
+      description: Returns the Datset response
+      operationId: createPolicy
+      tags:
+        - policies
+      parameters:
+        - in: header
+          name: x-gcp-project-id
+          type: string
+          required: true
+        - in: body
+          name: policy
+          description: Request parameters for Policy
+          schema:
+            $ref: '#/definitions/Policy'
+      produces:
+        - application/json
+      responses:
+        '201':
+          description: Policy
+          schema:
+            type: object
+            properties:
+              success:
+                type: boolean
+                description: Success of the request
+              code:
+                type: integer
+                description: HTTP status code
+              data:
+                type: object
+                items:
+                  $ref: '#/definitions/Policy'
+        '404':
+          description: Error
+          schema:
+            $ref: '#/definitions/Error'
+        '500':
+          description: Error
+          schema:
+            $ref: '#/definitions/Error'
+  /products:
+    options:
+      summary: CORS support
+      description: Enable CORS by returning correct headers
+      operationId: optionsListProducts
+      tags:
+        - products
+      security: []
+      produces:
+        - application/json
+      responses:
+        '200':
+          description: Default response for CORS method
+          headers:
+            Access-Control-Allow-Headers:
+              type: string
+            Access-Control-Allow-Methods:
+              type: string
+            Access-Control-Allow-Origin:
+              type: string
+    get:
+      summary: List Products based off request parameters
+      description: Returns the Product list response
+      operationId: listProducts
+      parameters:
+        - in: header
+          name: x-gcp-project-id
+          type: string
+          required: true
+      tags:
+        - products
+      produces:
+        - application/json
+      responses:
+        '200':
+          description: Product list
+          schema:
+            type: object
+            properties:
+              code:
+                type: integer
+                default: 200
+                description: HTTP status code
+              success:
+                type: boolean
+                description: Success of the request
+              data:
+                type: array
+                items:
+                  type: object
+                  description: Policy object
+                  properties:
+                    bigQueryEnabled:
+                      type: boolean
+                      description: Flag indicating if BigQuery is enabled for the policy
+                    pubsubEnabled:
+                      type: boolean
+                      description: Flag indicating if Pub/Sub is enabled for the policy
+                    storageEnabled:
+                      type: boolean
+                      description: Flag indicating if Cloud Storage is enabled for the policy
+                    buckets:
+                      type: array
+                      description: Policy buckets
+                      items:
+                        $ref: '#/definitions/Bucket'
+                    topics:
+                      type: array
+                      description: Policy topics
+                      items:
+                        $ref: '#/definitions/Topic'
+                    isTableBased:
+                      type: boolean
+                      description: Indicates if policy is table-based if not than dataset-based.
+                    datasets:
+                      type: array
+                      description: Policy datasets
+                      items:
+                        $ref: '#/definitions/PolicyDataset'
+                    rowAccessTags:
+                      type: array
+                      description: Policy row access tags
+                      items:
+                        $ref: '#/definitions/RowAccessTag'
+                    marketplace:
+                      $ref: '#/definitions/PolicyMarketplace'
+                    status:
+                      type: boolean
+                      description: Flag indicating if user has activated product
+        '500':
+          description: Error
+          schema:
+            $ref: '#/definitions/Error'
+  /policies/{policyId}:
+    options:
+      summary: CORS support
+      description: Enable CORS by returning correct headers
+      operationId: optionsPolicyByPolicyId
+      tags:
+        - policies
+      security: []
+      parameters:
+        - in: path
+          name: policyId
+          type: string
+          required: true
+          description: Policy Id of the Policy request
+      produces:
+        - application/json
+      responses:
+        '200':
+          description: Default response for CORS method
+          headers:
+            Access-Control-Allow-Headers:
+              type: string
+            Access-Control-Allow-Methods:
+              type: string
+            Access-Control-Allow-Origin:
+              type: string
+    get:
+      summary: Get Policy based off policyId
+      description: Returns the Datset response
+      operationId: getPolicyByPolicyId
+      tags:
+        - policies
+      parameters:
+        - in: path
+          name: policyId
+          type: string
+          required: true
+          description: Policy Id of the Policy request
+        - in: header
+          name: x-gcp-project-id
+          type: string
+          required: true
+      produces:
+        - application/json
+      responses:
+        '200':
+          description: Policy
+          schema:
+            type: object
+            properties:
+              success:
+                type: boolean
+                description: Success of the request
+              code:
+                type: integer
+                default: 200
+                description: HTTP status code
+              data:
+                $ref: '#/definitions/Policy'
+        '500':
+          description: Error
+          schema:
+            $ref: '#/definitions/Error'
+    put:
+      summary: Update Policy based off policy ID and request body
+      description: Returns the Policy response
+      operationId: updatePolicyByPolicyId
+      tags:
+        - policies
+      parameters:
+        - in: header
+          name: x-gcp-project-id
+          type: string
+          required: true
+        - in: path
+          name: policyId
+          type: string
+          required: true
+          description: Policy Id of the Policy request
+        - in: body
+          name: policy
+          description: Request parameters for Policy
+          schema:
+            $ref: '#/definitions/Policy'
+      produces:
+        - application/json
+      responses:
+        '200':
+          description: Policy
+          schema:
+            type: object
+            properties:
+              success:
+                type: boolean
+                description: Success of the request
+              code:
+                type: integer
+                description: HTTP status code
+              data:
+                $ref: '#/definitions/Policy'
+        '400':
+          description: Error
+          schema:
+            $ref: '#/definitions/Error'
+        '500':
+          description: Error
+          schema:
+            $ref: '#/definitions/Error'
+    delete:
+      summary: Delete Policy based off policy ID and request body
+      description: Returns the Policy response
+      operationId: deletePolicyByPolicyId
+      tags:
+        - policies
+      parameters:
+        - in: header
+          name: x-gcp-project-id
+          type: string
+          required: true
+        - in: path
+          name: policyId
+          type: string
+          required: true
+          description: Policy Id of the Policy request
+        - in: body
+          name: policy
+          description: Request parameters for Policy
+          schema:
+            type: object
+            properties:
+              rowId:
+                description: The rowId for the current policy
+      produces:
+        - application/json
+      responses:
+        '200':
+          description: Policy
+          schema:
+            type: object
+            properties:
+              success:
+                type: boolean
+                description: Success of the request
+              code:
+                type: integer
+                description: HTTP status code
+              data:
+                type: object
+                items:
+                  $ref: '#/definitions/Policy'
+        '500':
+          description: Error
+          schema:
+            $ref: '#/definitions/Error'
+  /accounts/{accountId}/policies:
+    options:
+      summary: CORS support
+      description: Enable CORS by returning correct headers
+      operationId: optionsPolicyByAccountId
+      tags:
+        - accounts
+      security: []
+      parameters:
+        - in: path
+          name: accountId
+          type: string
+          required: true
+          description: Account Id of the Account request
+      produces:
+        - application/json
+      responses:
+        '200':
+          description: Default response for CORS method
+          headers:
+            Access-Control-Allow-Headers:
+              type: string
+            Access-Control-Allow-Methods:
+              type: string
+            Access-Control-Allow-Origin:
+              type: string
+    get:
+      summary: List Policy based off accountId and request parameters
+      description: Returns the PolicyList response
+      operationId: listPoliciesByAccountId
+      tags:
+        - accounts
+      parameters:
+        - in: header
+          name: x-gcp-project-id
+          type: string
+          required: true
+        - in: path
+          name: accountId
+          type: string
+          required: true
+          description: Account Id of the Policy request
+      produces:
+        - application/json
+      responses:
+        '200':
+          description: Policy list
+          schema:
+            type: object
+            properties:
+              code:
+                type: integer
+                default: 200
+                description: HTTP status code
+              success:
+                type: boolean
+                description: Success of the request
+              data:
+                type: array
+                items:
+                  $ref: '#/definitions/Policy'
+        '500':
+          description: Error
+          schema:
+            $ref: '#/definitions/Error'
+  /datasets/{datasetId}/policies:
+    options:
+      summary: CORS support
+      description: Enable CORS by returning correct headers
+      operationId: optionsPolicyByDatasetId
+      security: []
+      tags:
+        - datasets
+      parameters:
+        - in: path
+          name: datasetId
+          type: string
+          required: true
+          description: Dataset Id of the Policy request
+      produces:
+        - application/json
+      responses:
+        '200':
+          description: Default response for CORS method
+          headers:
+            Access-Control-Allow-Headers:
+              type: string
+            Access-Control-Allow-Methods:
+              type: string
+            Access-Control-Allow-Origin:
+              type: string
+    get:
+      summary: List Policy based off datasetId and request parameters
+      description: Returns the PolicyList response
+      operationId: listPoliciesByDatasetId
+      tags:
+        - datasets
+      parameters:
+        - in: path
+          name: datasetId
+          type: string
+          required: true
+          description: Dataset Id of the Policy request
+        - in: header
+          name: x-gcp-project-id
+          type: string
+          required: true
+      produces:
+        - application/json
+      responses:
+        '200':
+          description: Policy list
+          schema:
+            type: object
+            properties:
+              success:
+                type: boolean
+                description: Success of the request
+              code:
+                type: integer
+                default: 200
+                description: HTTP status code
+              data:
+                type: array
+                items:
+                  $ref: '#/definitions/Policy'
+        '500':
+          description: Error
+          schema:
+            $ref: '#/definitions/Error'
+  /procurements:
+    options:
+      summary: CORS support
+      description: Enable CORS by returning correct headers
+      operationId: optionsProcurements
+      tags:
+        - procurements
+      security: []
+      produces:
+        - application/json
+      responses:
+        '200':
+          description: Default response for CORS method
+          headers:
+            Access-Control-Allow-Headers:
+              type: string
+            Access-Control-Allow-Methods:
+              type: string
+            Access-Control-Allow-Origin:
+              type: string
+    get:
+      summary: List Procurements based off request parameters
+      description: Returns the ProcurementList response
+      operationId: listProcurements
+      parameters:
+        - in: header
+          name: x-gcp-project-id
+          type: string
+          required: true
+      tags:
+        - procurements
+      produces:
+        - application/json
+      responses:
+        '200':
+          description: Procurement list
+          schema:
+            type: object
+            properties:
+              code:
+                type: integer
+                default: 200
+                description: HTTP status code
+              success:
+                type: boolean
+                description: Success of the request
+              data:
+                type: array
+                items:
+                  type: object
+                  properties:
+                    name:
+                      type: string
+                      description: The resource name of the entitlement. Entitlement names have the form providers/{providerId}/entitlements/{entitlement_id}.
+                    account:
+                      type: string
+                      description: The resource name of the account that this entitlement is based on, if any.
+                    provider:
+                      type: string
+                      description: The identifier of the service provider that this entitlement was created against. Each service provider is assigned a unique provider value when they onboard with Cloud Commerce platform.
+                    product:
+                      type: string
+                      description: The identifier of the entity that was purchased. This may actually represent a product, quote, or offer.
+                    plan:
+                      type: string
+                      description: The identifier of the plan that was procured. Required if the product has plans.
+                    state:
+                      type: string
+                      description: The state of the entitlement
+                      enum:
+                        - ENTITLEMENT_STATE_UNSPECIFIED
+                        - ENTITLEMENT_ACTIVATION_REQUESTED
+                        - ENTITLEMENT_ACTIVE
+                        - ENTITLEMENT_PENDING_CANCELLATION
+                        - ENTITLEMENT_CANCELLED
+                        - ENTITLEMENT_PENDING_PLAN_CHANGE
+                        - ENTITLEMENT_PENDING_PLAN_CHANGE_APPROVAL
+                        - ENTITLEMENT_SUSPENDED
+                    updateTime:
+                      type: string
+                      description: The last update timestamp.
+                    createTime:
+                      type: string
+                      description: The creation timestamp.
+                    productExternalName:
+                      type: string
+                      description: The identifier of the product that was procured.
+                    policy:
+                      type: object
+                      properties:
+                        policyId:
+                          type: string
+                          description: The policy Id
+                        name:
+                          type: string
+                          description: The policy name
+                        description:
+                          type: string
+                          description: The policy description
+                    activated:
+                      type: boolean
+                      description: Flag indicating if the user has performed activation
+                    email:
+                      type: string
+                      description: Email address of the activated user
+                    accountId:
+                      type: string
+                      description: Billing accountId of the consumer
+        '500':
+          description: Error
+          schema:
+            $ref: '#/definitions/Error'
+  /procurements/approve:
+    options:
+      summary: CORS support
+      description: Enable CORS by returning correct headers
+      operationId: optionsApproveProcument
+      tags:
+        - procurements
+      security: []
+      produces:
+        - application/json
+      responses:
+        '200':
+          description: Default response for CORS method
+          headers:
+            Access-Control-Allow-Headers:
+              type: string
+            Access-Control-Allow-Methods:
+              type: string
+            Access-Control-Allow-Origin:
+              type: string
+    post:
+      summary: Change the marketplace entititlement approval status based off request parameters
+      description: Returns a response indicating if successful
+      operationId: approveProcurement
+      parameters:
+        - in: header
+          name: x-gcp-project-id
+          type: string
+          required: true
+        - in: body
+          name: payload
+          schema:
+            type: object
+            properties:
+              name:
+                description: Entitlement name to provide action
+              status:
+                description: New approval status
+              reason:
+                description: Free form text string explaining the approval reason
+      tags:
+        - procurements
+      produces:
+        - application/json
+      responses:
+        '200':
+          description: Procurement list
+          schema:
+            type: object
+            properties:
+              success:
+                type: boolean
+                description: Success of the request
+              code:
+                type: integer
+                default: 200
+                description: HTTP status code
+        '500':
+          description: Error
+          schema:
+            $ref: '#/definitions/Error'
+  /procurements:myProducts:
+    options:
+      summary: CORS support
+      description: Enable CORS by returning correct headers
+      operationId: optionsRedirectMyProducts
+      tags:
+        - procurements
+      security: []
+      produces:
+        - application/json
+      responses:
+        '200':
+          description: Default response for CORS method
+          headers:
+            Access-Control-Allow-Headers:
+              type: string
+            Access-Control-Allow-Methods:
+              type: string
+            Access-Control-Allow-Origin:
+              type: string
+    get:
+      summary: Performs redirect to the Datashare My Products UI page.
+      description: Returns a 301 redirect response
+      operationId: redirectMyProducts
+      security: []
+      tags:
+        - procurements
+      responses:
+        '301':
+          description: Redirect to My Products URL
+  /pubsub/topics:
+    options:
+      summary: CORS support
+      description: Enable CORS by returning correct headers
+      operationId: optionsPubSubTopics
+      tags:
+        - pubsub
+      security: []
+      produces:
+        - application/json
+      responses:
+        '200':
+          description: Default response for CORS method
+          headers:
+            Access-Control-Allow-Headers:
+              type: string
+            Access-Control-Allow-Methods:
+              type: string
+            Access-Control-Allow-Origin:
+              type: string
+    get:
+      summary: List PubSub Topics based
+      description: Returns the PubSub Topic response
+      operationId: listPubSubTopics
+      tags:
+        - pubsub
+      parameters:
+        - in: header
+          name: x-gcp-project-id
+          type: string
+          required: true
+      produces:
+        - application/json
+      responses:
+        '200':
+          description: PubSub Topic Response
+          schema:
+            type: object
+            properties:
+              code:
+                type: integer
+                default: 200
+                description: HTTP status code
+              success:
+                type: boolean
+                description: Success of the request
+              data:
+                type: array
+                items:
+                  type: object
+                  description: PubSub Topic object
+                  properties:
+                    topicName:
+                      type: string
+                      description: Topic Name
+                    topicId:
+                      type: string
+                      description: Topic ID
+        '500':
+          description: Error
+          schema:
+            $ref: '#/definitions/Error'
+    post:
+      summary: Create PubSub Topic based off PubSubTopic Object
+      description: Returns the PubSub Topic response
+      operationId: createPubSubTopic
+      tags:
+        - pubsub
+      parameters:
+        - in: header
+          name: x-gcp-project-id
+          type: string
+          required: true
+        - in: body
+          name: pubsubtopic
+          description: Request parameters for PubSub Topic
+          schema:
+            type: object
+            properties:
+              name:
+                type: string
+                description: PubSub Topic Name
+      produces:
+        - application/json
+      responses:
+        '201':
+          description: PubSub Topic Response
+          schema:
+            type: object
+            properties:
+              success:
+                type: boolean
+                description: Success of the request
+              code:
+                type: integer
+                default: 200
+                description: HTTP status code
+              data:
+                type: object
+                properties:
+                  name:
+                    type: string
+                    description: PubSub Topic Name
+        '400':
+          description: Error
+          schema:
+            $ref: '#/definitions/Error'
+        '500':
+          description: Error
+          schema:
+            $ref: '#/definitions/Error'
+  /pubsub/topics/{name}:
+    options:
+      summary: CORS support
+      description: Enable CORS by returning correct headers
+      operationId: optionsDeletePubSubTopicByName
+      tags:
+        - pubsub
+      security: []
+      parameters:
+        - in: path
+          name: name
+          type: string
+          required: true
+          description: PubSub Topic Name of the request
+      produces:
+        - application/json
+      responses:
+        '200':
+          description: Default response for CORS method
+          headers:
+            Access-Control-Allow-Headers:
+              type: string
+            Access-Control-Allow-Methods:
+              type: string
+            Access-Control-Allow-Origin:
+              type: string
+    delete:
+      summary: Delete PubSub Topic based off PubSub Topic Name
+      description: Returns the PubSub Topic response
+      operationId: deletePubSubTopicByName
+      tags:
+        - pubsub
+      parameters:
+        - in: path
+          name: name
+          type: string
+          required: true
+          description: PubSub Topic Name of the request
+        - in: header
+          name: x-gcp-project-id
+          type: string
+          required: true
+      produces:
+        - application/json
+      responses:
+        '200':
+          description: PubSub Topic Response
+          schema:
+            type: object
+            properties:
+              success:
+                type: boolean
+                description: Success of the request
+              code:
+                type: integer
+                default: 200
+                description: HTTP status code
+        '500':
+          description: Error
+          schema:
+            $ref: '#/definitions/Error'
+  /resources/dashboard:
+    options:
+      summary: CORS support
+      description: Enable CORS by returning correct headers
+      operationId: optionsGetResourceDashboard
+      tags:
+        - resources
+      security: []
+      produces:
+        - application/json
+      responses:
+        '200':
+          description: Default response for CORS method
+          headers:
+            Access-Control-Allow-Headers:
+              type: string
+            Access-Control-Allow-Methods:
+              type: string
+            Access-Control-Allow-Origin:
+              type: string
+    get:
+      summary: Get Dashboard Counts
+      description: Returns the Dashbord Counts response
+      operationId: getDashboardCounts
+      tags:
+        - resources
+      parameters:
+        - in: header
+          name: x-gcp-project-id
+          type: string
+          required: true
+      produces:
+        - application/json
+      responses:
+        '200':
+          description: Dashboard Counts
+          schema:
+            type: object
+            properties:
+              success:
+                type: boolean
+                description: Success of the request
+              data:
+                type: object
+                properties:
+                  datasets:
+                    type: integer
+                  views:
+                    type: integer
+                  topics:
+                    type: integer
+                  buckets:
+                    type: integer
+                  accounts:
+                    type: integer
+                  policies:
+                    type: integer
+                  procurements:
+                    type: integer
+                  myProducts:
+                    type: integer
+        '500':
+          description: Error
+          schema:
+            $ref: '#/definitions/Error'
+  /resources/projects:
+    options:
+      summary: CORS support
+      description: Enable CORS by returning correct headers
+      operationId: optionsGetResourceProjects
+      tags:
+        - resources
+      security: []
+      produces:
+        - application/json
+      responses:
+        '200':
+          description: Default response for CORS method
+          headers:
+            Access-Control-Allow-Headers:
+              type: string
+            Access-Control-Allow-Methods:
+              type: string
+            Access-Control-Allow-Origin:
+              type: string
+    get:
+      summary: Get Project Resources
+      description: Returns the Project Resource response
+      operationId: getProjectResources
+      tags:
+        - resources
+      parameters:
+        - in: header
+          name: x-gcp-project-id
+          type: string
+          required: true
+      produces:
+        - application/json
+      responses:
+        '200':
+          description: Project Resource
+          schema:
+            type: object
+            properties:
+              success:
+                type: boolean
+                description: Success of the request
+              projects:
+                type: array
+                description: List of projectId available to be managed by console
+                items:
+                  type: string
+        '500':
+          description: Error
+          schema:
+            $ref: '#/definitions/Error'
+  /resources/configuration:
+    options:
+      summary: CORS support
+      description: Enable CORS by returning correct headers
+      operationId: optionsGetResourceConfiguration
+      tags:
+        - resources
+      security: []
+      produces:
+        - application/json
+      responses:
+        '200':
+          description: Default response for CORS method
+          headers:
+            Access-Control-Allow-Headers:
+              type: string
+            Access-Control-Allow-Methods:
+              type: string
+            Access-Control-Allow-Origin:
+              type: string
+    get:
+      summary: Get Configuration Resources
+      description: Returns the Configuration Resource response
+      operationId: getProjectResourceConfiguration
+      tags:
+        - resources
+      parameters:
+        - in: header
+          name: x-gcp-project-id
+          type: string
+          required: true
+      produces:
+        - application/json
+      responses:
+        '200':
+          description: Configuration Resource
+          schema:
+            type: object
+            properties:
+              success:
+                type: boolean
+                description: Success of the request
+              configuration:
+                type: object
+                properties:
+                  apiProjectId:
+                    type: string
+                    description: The projectId for the api service
+                  projectId:
+                    type: string
+                    description: The selected projectId
+                  isMarketplaceEnabled:
+                    type: boolean
+                    description: Flag indicating if marketplace integration is enabled
+                  labels:
+                    type: object
+                    description: UI replacement labels
+                    properties:
+                      key:
+                        type: string
+        '500':
+          description: Error
+          schema:
+            $ref: '#/definitions/Error'
+  /spots:config:
+    options:
+      summary: CORS support
+      description: Enable CORS by returning correct headers
+      operationId: optionsSpotsConfig
+      tags:
+        - spots
+      security: []
+      responses:
+        '200':
+          description: Default response for CORS method
+          headers:
+            Access-Control-Allow-Headers:
+              type: string
+            Access-Control-Allow-Methods:
+              type: string
+            Access-Control-Allow-Origin:
+              type: string
+    get:
+      summary: Spot API service environment configuration
+      description: Returns the Spot API service configuration
+      operationId: getSpotConfig
+      parameters:
+        - in: header
+          name: x-gcp-project-id
+          type: string
+          required: true
+      tags:
+        - spots
+      produces:
+        - application/json
+      responses:
+        '200':
+          description: Spot API service configuration
+          schema:
+            type: object
+            properties:
+              success:
+                type: boolean
+                description: Success of the request
+              code:
+                type: integer
+                description: HTTP status code
+              data:
+                $ref: '#/definitions/SpotApiServiceConfig'
+  /spots:options:
+    options:
+      summary: CORS support
+      description: Enable CORS by returning correct headers
+      operationId: optionsGetSpotOptions
+      tags:
+        - spots
+      security: []
+      responses:
+        '200':
+          description: Default response for CORS method
+          headers:
+            Access-Control-Allow-Headers:
+              type: string
+            Access-Control-Allow-Methods:
+              type: string
+            Access-Control-Allow-Origin:
+              type: string
+    get:
+      summary: Spot query options (entitlement) for the Spot API service
+      description: Returns the Spot query options for the Spot API service
+      operationId: getSpotOptions
+      tags:
+        - spots
+      parameters:
+        - in: query
+          name: includeAvailableValues
+          type: boolean
+          required: false
+          description: Include available values in options response
+        - in: header
+          name: x-gcp-project-id
+          type: string
+          required: true
+      produces:
+        - application/json
+      responses:
+        '200':
+          description: Spot query options 200 response
+          schema:
+            type: object
+            properties:
+              success:
+                type: boolean
+                description: Success of the request
+              code:
+                type: integer
+                description: HTTP status code
+              data:
+                type: array
+                description: list of Spot API entitlements query options
+                items:
+                  $ref: '#/definitions/SpotOptions'
+  /spots:
+    post:
+      summary: Create Spot based off request parameters
+      description: Returns the Spot response
+      operationId: createSpotRequest
+      tags:
+        - spots
+      parameters:
+        - in: header
+          name: x-gcp-project-id
+          type: string
+          required: true
+        - in: body
+          name: spot
+          description: Request parameters for Spot
+          schema:
+            $ref: '#/definitions/SpotSchema'
+      produces:
+        - application/json
+      responses:
+        '201':
+          description: Spot Configuration
+          schema:
+            type: object
+            properties:
+              success:
+                type: boolean
+                description: Success of the request
+              code:
+                type: integer
+                description: HTTP status code
+              data:
+                items:
+                  $ref: '#/definitions/SpotResponseSchema'
+  /spots/{requestId}:
+    get:
+      summary: Check Spot status based off Request ID
+      description: Returns the Spot Status response
+      operationId: getSpotRequestByRequestId
+      tags:
+        - spots
+      parameters:
+        - in: path
+          name: requestId
+          type: string
+          required: true
+          description: Request Id of the Spot request
+        - in: query
+          name: bucketName
+          type: string
+          required: true
+          description: Bucket Name from the Spot Request Id
+        - in: query
+          name: fileName
+          type: string
+          required: true
+          description: File Name from the Spot Request Id
+        - in: header
+          name: x-gcp-project-id
+          type: string
+          required: true
+      produces:
+        - application/json
+      responses:
+        '200':
+          description: Spot Status 200 Response
+          schema:
+            type: object
+            properties:
+              success:
+                type: boolean
+                description: Success of the request
+              code:
+                type: integer
+                default: 200
+                description: HTTP status code
+              data:
+                $ref: '#/definitions/SpotStatusResponseSchema'
+        '400':
+          description: Spot Status 400 Response
+          schema:
+            type: object
+            properties:
+              success:
+                type: boolean
+                default: false
+                description: Success of the request
+              code:
+                type: integer
+                default: 400
+                description: HTTP status code
+              errors:
+                type: array
+                description: list of Spot errors
+                items:
+                  type: string
+  /storage/buckets:
+    options:
+      summary: CORS support
+      description: Enable CORS by returning correct headers
+      operationId: optionsStorageBuckets
+      tags:
+        - storage
+      security: []
+      produces:
+        - application/json
+      responses:
+        '200':
+          description: Default response for CORS method
+          headers:
+            Access-Control-Allow-Headers:
+              type: string
+            Access-Control-Allow-Methods:
+              type: string
+            Access-Control-Allow-Origin:
+              type: string
+    get:
+      summary: List Storage Buckets based
+      description: Returns the Storage Bucket response
+      operationId: listStorageBuckets
+      tags:
+        - storage
+      parameters:
+        - in: header
+          name: x-gcp-project-id
+          type: string
+          required: true
+      produces:
+        - application/json
+      responses:
+        '200':
+          description: Storage Bucket Response
+          schema:
+            type: object
+            properties:
+              success:
+                type: boolean
+                description: Success of the request
+              code:
+                type: integer
+                default: 200
+                description: HTTP status code
+              data:
+                type: array
+                items:
+                  type: object
+                  description: Storage Bucket object
+                  properties:
+                    bucketName:
+                      type: string
+                      description: Bucket Name
+                    modifiedAt:
+                      type: string
+                      description: Modification time
+        '500':
+          description: Error
+          schema:
+            $ref: '#/definitions/Error'
+    post:
+      summary: Create Storage Bucket based off StorageBucket Object
+      description: Returns the Storage Bucket response
+      operationId: createStorageBucket
+      tags:
+        - storage
+      parameters:
+        - in: header
+          name: x-gcp-project-id
+          type: string
+          required: true
+        - in: body
+          name: storagebuckets
+          description: Request parameters for Storage Bucket
+          schema:
+            type: object
+            properties:
+              name:
+                type: string
+                description: Storage Bucket Name
+      produces:
+        - application/json
+      responses:
+        '201':
+          description: Storage Bucket Response
+          schema:
+            type: object
+            properties:
+              code:
+                type: integer
+                default: 200
+                description: HTTP status code
+              success:
+                type: boolean
+                description: Success of the request
+              data:
+                type: object
+                properties:
+                  name:
+                    type: string
+                    description: The bucket name
+        '400':
+          description: Error
+          schema:
+            $ref: '#/definitions/Error'
+        '500':
+          description: Error
+          schema:
+            $ref: '#/definitions/Error'
+  /storage/buckets/{name}:
+    options:
+      summary: CORS support
+      description: Enable CORS by returning correct headers
+      operationId: optionsDeleteStorageBucketByName
+      tags:
+        - storage
+      security: []
+      parameters:
+        - in: path
+          name: name
+          type: string
+          required: true
+          description: Storage Bucket Name of the request
+      produces:
+        - application/json
+      responses:
+        '200':
+          description: Default response for CORS method
+          headers:
+            Access-Control-Allow-Headers:
+              type: string
+            Access-Control-Allow-Methods:
+              type: string
+            Access-Control-Allow-Origin:
+              type: string
+    delete:
+      summary: Delete Storage Bucket based off Storage Bucket Name
+      description: Returns the Storage Bucket response
+      operationId: deleteStorageBucketByName
+      tags:
+        - storage
+      parameters:
+        - in: header
+          name: x-gcp-project-id
+          type: string
+          required: true
+        - in: path
+          name: name
+          type: string
+          required: true
+          description: Storage Bucket Name of the request
+      produces:
+        - application/json
+      responses:
+        '200':
+          description: Storage Bucket Response
+          schema:
+            type: object
+            properties:
+              success:
+                type: boolean
+                description: Success of the request
+              code:
+                type: integer
+                default: 200
+                description: HTTP status code
+        '500':
+          description: Error
+          schema:
+            $ref: '#/definitions/Error'
+definitions:
+  Error:
+    type: object
+    description: Error object
+    properties:
+      success:
+        type: boolean
+        description: Success of the request
+      code:
+        type: integer
+        description: HTTP status code
+      errors:
+        type: array
+        items:
+          type: string
+  ModifyAccountResponse:
+    type: object
+    description: Account object
+    properties:
+      email:
+        type: string
+        description: Account email address
+      emailType:
+        $ref: '#/definitions/EmailType'
+      accountType:
+        $ref: '#/definitions/AccountType'
+      createdBy:
+        type: string
+        description: Account created by email
+      policies:
+        type: array
+        description: Account policy IDs
+        items:
+          type: object
+          properties:
+            policyId:
+              type: string
+              description: Policy ID
+      marketplace:
+        $ref: '#/definitions/Marketplace'
+      rowId:
+        type: string
+        readOnly: true
+        description: Account Row ID
+      accountId:
+        type: string
+        readOnly: true
+        description: Account ID
+      isDeleted:
+        type: boolean
+        description: Flag indicating deletion status
+      createdAt:
+        type: integer
+        description: Created at time
+  Account:
+    type: object
+    description: Account object
+    properties:
+      rowId:
+        type: string
+        readOnly: true
+        description: Account Row ID
+      accountId:
+        type: string
+        readOnly: true
+        description: Account ID
+      email:
+        type: string
+        description: Account email address
+      emailType:
+        $ref: '#/definitions/EmailType'
+      accountType:
+        $ref: '#/definitions/AccountType'
+      createdBy:
+        type: string
+        description: Account created by email
+      marketplace:
+        $ref: '#/definitions/Marketplace'
+      createdAt:
+        type: integer
+        description: Created at time
+      version:
+        type: integer
+        description: The object version
+      isDeleted:
+        type: boolean
+        description: Flag indicating deletion status
+      policies:
+        type: array
+        description: Account policy IDs
+        items:
+          type: object
+          description: Policy ID object
+          properties:
+            policyId:
+              type: string
+              description: Policy ID
+            name:
+              type: string
+              description: Policy name
+            solutionId:
+              type: string
+              description: Linked marketplace solution Id
+            planId:
+              type: string
+              description: Linked marketplace plan Id
+            marketplaceEntitlementActive:
+              type: boolean
+              description: Indicates if marketplace entitlements are in sync for policy
+      marketplaceSynced:
+        type: boolean
+        description: Indicates if marketplace entitlements are in sync for account
+      marketplaceActivated:
+        type: boolean
+        description: Indicates if account is linked and activated in marketplace
+    required:
+      - email
+      - emailType
+      - accountType
+  EmailType:
+    type: string
+    description: Account Email Type enum
+    enum:
+      - user
+      - group
+      - serviceAccount
+  AccountType:
+    type: string
+    description: Account Type enum
+    enum:
+      - consumer
+      - producer
+  Marketplace:
+    type: object
+    description: Marketplace object
+    properties:
+      accountName:
+        type: string
+        description: The associated marketplace account name
+  Dataset:
+    type: object
+    description: Dataset object
+    properties:
+      datasetId:
+        type: string
+        description: The BigQuery datasetId.
+      description:
+        type: string
+        description: Description of the dataset.
+      modifiedAt:
+        type: integer
+        description: The last modified timestamp.
+      accounts:
+        type: array
+        description: Accounts with access to the dataset.
+        items:
+          type: object
+          description: Table object
+          properties:
+            email:
+              type: string
+              description: Email address for the account
+            type:
+              type: string
+              description: The account type
+              enum:
+                - userByEmail
+                - groupByEmail
+      labels:
+        type: object
+        properties:
+          key:
+            type: string
+            description: The label
+  View:
+    type: object
+    description: View object
+    properties:
+      rowId:
+        type: string
+        description: The view rowId. Provided only when modifying existing views.
+      authorizedViewId:
+        type: string
+        description: The authorized view Id
+      name:
+        type: string
+        description: The view name
+      description:
+        type: string
+        description: The view description
+      datasetId:
+        type: string
+        description: Dataset ID
+      source:
+        type: object
+        properties:
+          datasetId:
+            type: string
+          tableId:
+            type: string
+          publicAccess:
+            type: object
+            properties:
+              enabled:
+                type: boolean
+                description: Flag indicating if public access is enabled
+          visibleColumns:
+            type: array
+            items:
+              type: object
+              properties:
+                column:
+                  type: string
+          queryFilter:
+            type: string
+      custom:
+        type: object
+        properties:
+          query:
+            type: string
+            description: The custom query string
+          authorizeFromDatasetIds:
+            type: array
+            items:
+              type: object
+              properties:
+                datasetId:
+                  type: string
+      accessControl:
+        type: object
+        properties:
+          enabled:
+            type: boolean
+            description: Flag indicating if access control is enabled
+          labelColumn:
+            type: string
+            description: The column to use for row access tag filtering
+          labelColumnDelimiter:
+            type: string
+            description: Delimiter to use for splitting labels if multiple existing in the label column
+      expiration:
+        type: object
+        properties:
+          enabled:
+            type: boolean
+            description: Flag indicating if expiration is enabled
+      createdBy:
+        type: string
+        description: Created by user
+      createdAt:
+        type: integer
+        description: Created at time
+      version:
+        type: integer
+        description: The view version
+  Policy:
+    type: object
+    description: Policy object
+    properties:
+      rowId:
+        type: string
+        readOnly: true
+        description: Policy Row ID, only required for update operations
+      policyId:
+        type: string
+        readOnly: true
+        description: Policy ID, only required for update operations
+      name:
+        type: string
+        description: Policy display name
+      description:
+        type: string
+        description: Policy decsription
+      bigQueryEnabled:
+        type: boolean
+        description: Flag indicating if BigQuery is enabled for the policy
+      pubsubEnabled:
+        type: boolean
+        description: Flag indicating if Pub/Sub is enabled for the policy
+      storageEnabled:
+        type: boolean
+        description: Flag indicating if Cloud Storage is enabled for the policy
+      buckets:
+        type: array
+        description: Policy buckets
+        items:
+          $ref: '#/definitions/Bucket'
+      topics:
+        type: array
+        description: Policy topics
+        items:
+          $ref: '#/definitions/Topic'
+      isTableBased:
+        type: boolean
+        description: Indicates if policy is table-based if not than dataset-based.
+      datasets:
+        type: array
+        description: Policy datasets
+        items:
+          $ref: '#/definitions/PolicyDataset'
+      rowAccessTags:
+        type: array
+        description: Policy row access tags
+        items:
+          $ref: '#/definitions/RowAccessTag'
+      marketplace:
+        $ref: '#/definitions/PolicyMarketplace'
+      createdBy:
+        type: string
+        description: Policy created by email
+      createdAt:
+        type: integer
+        description: Policy created at time
+      version:
+        type: integer
+        description: Policy version
+      isDeleted:
+        type: boolean
+        description: Flag indicating if policy was deleted
+    required:
+      - name
+  RowAccessTag:
+    type: object
+    description: Policy Row Access Tag object
+    properties:
+      tag:
+        type: string
+        description: Row Access Tag
+  Bucket:
+    type: object
+    description: Policy bucket object
+    properties:
+      bucketName:
+        type: string
+        description: The Cloud Storage bucket name
+  Topic:
+    type: object
+    description: Policy topic object
+    properties:
+      topicId:
+        type: string
+        description: The Pub/Sub topic name
+  PolicyDataset:
+    type: object
+    description: Policy dataset object
+    properties:
+      datasetId:
+        type: string
+        description: The dataset Id
+      tables:
+        type: array
+        description: Policy dataset table
+        items:
+          type: object
+          description: Policy dataset table object
+          properties:
+            tableId:
+              type: string
+              description: The BigQuery tableId
+  PolicyMarketplace:
+    type: object
+    description: Marketplace object
+    properties:
+      solutionId:
+        type: string
+        description: The marketplace solutionId, also known as the product
+      planId:
+        type: string
+        description: The marketplace planId, also known as the plan
+      enableAutoApprove:
+        type: boolean
+        description: Indicates if the purchasing account should automatically be added to the policy
+  SpotApiServiceConfig:
+    type: object
+    description: Spot API service config
+    properties:
+      config:
+        type: object
+        properties:
+          bucketName:
+            type: string
+            description: Spot API Service Bucket Name
+          fileName:
+            type: string
+            description: Spot API Service Config File Name
+          destination:
+            type: object
+            properties:
+              projectId:
+                type: string
+              datasetId:
+                type: string
+  SpotOptions:
+    type: object
+    description: Spott API query options (entitlement)
+    properties:
+      name:
+        type: string
+        description: Spot query set name
+      dataId:
+        type: string
+        description: Unique Spot query set name
+      params:
+        type: array
+        description: Available Spot parameters to query
+        items:
+          $ref: '#/definitions/SpotQueryParameter'
+  SpotQueryParameter:
+    type: object
+    description: Spot Query Parameters Definition
+    properties:
+      name:
+        type: string
+        description: Spot query parameter name
+      description:
+        type: string
+        description: Spot query parameter description
+  SpotDestination:
+    type: object
+    description: Spot destination
+    properties:
+      bucketName:
+        type: string
+        description: Spot destination storage bucket name
+      fileName:
+        type: string
+        description: Spot destination storage file name
+      projectId:
+        type: string
+        description: Spot destination GCP project ID
+    required:
+      - bucketName
+      - fileName
+      - projectId
+  SpotSchema:
+    type: object
+    description: Spot schema
+    properties:
+      dataId:
+        type: string
+      parameters:
+        type: object
+      destination:
+        $ref: '#/definitions/SpotDestination'
+    required:
+      - dataId
+  SpotResponseSchema:
+    type: object
+    description: Spot response
+    properties:
+      requestId:
+        type: string
+      query:
+        type: string
+      bucketName:
+        type: string
+      fileName:
+        type: string
+      signedUrl:
+        type: string
+    required:
+      - requestId
+      - query
+      - bucketName
+      - fileName
+  SpotStatusResponseSchema:
+    type: object
+    description: Spot request status response
+    properties:
+      requestId:
+        type: string
+      query:
+        type: string
+      bucketName:
+        type: string
+      fileName:
+        type: string
+      signedUrl:
+        type: string
+    required:
+      - requestId
+      - query
+      - bucketName
+      - fileName
+      - signedUrl
+responses: {}
+parameters: {}
+tags:
+  - name: default
+    description: The default routes for the Datashare API
+  - name: welcome
+    description: The welcome message for the Datashare API
+  - name: accounts
+    description: The Datashare API Account Services
+  - name: admin
+    description: The Datashare API Admin Services
+  - name: datasets
+    description: The Datashare API Dataset Services
+  - name: docs
+    description: The OpenAPI specification documents for the Datashare API services
+  - name: policies
+    description: The Datashare API Policy Services
+  - name: procurements
+    description: The Datashare API Procurements Services
+  - name: products
+    description: The Datashare API Products Services
+  - name: pubsub
+    description: The Datashare API PubSub Services
+  - name: resources
+    description: The Datashare API Resources Services
+  - name: spots
+    description: The Datashare API Spot Services
+  - name: storage
+    description: The Datashare API Cloud Storage Services

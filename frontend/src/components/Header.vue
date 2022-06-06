@@ -75,11 +75,14 @@
         :loading="loading"
       ></v-select>
       <v-spacer></v-spacer>
-      <v-avatar :tile="true" height="25" width="25">
-        <img :src="require('@/assets/datashare-alpha-24px.svg')" alt="logo" />
-      </v-avatar>
-      <v-spacer></v-spacer>
-      <v-spacer></v-spacer>
+      <v-tooltip bottom>
+        <template v-slot:activator="{ on }">
+          <v-btn icon dark v-on="on" @click="toggleLightDarkMode">
+            <v-icon>{{ icons.themeLightDark }}</v-icon>
+          </v-btn>
+        </template>
+        <span>Toggle Light/Dark Mode</span>
+      </v-tooltip>
       <v-tooltip bottom>
         <template v-slot:activator="{ on }">
           <v-btn
@@ -96,27 +99,16 @@
       </v-tooltip>
       <v-tooltip bottom v-if="this.isLoggedIn === false">
         <template v-slot:activator="{ on }">
-          <v-btn icon dark v-on="on">
-            <GoogleLogin
-              :params="params"
-              :onSuccess="onAuthSuccess"
-              :onFailure="onAuthFailure"
-              ><v-icon title="login">{{ icons.login }}</v-icon></GoogleLogin
-            >
+          <v-btn icon dark v-on="on" @click="login">
+            <v-icon title="login">{{ icons.login }}</v-icon>
           </v-btn>
         </template>
         <span>Login</span>
       </v-tooltip>
       <v-tooltip bottom v-if="this.isLoggedIn === true">
         <template v-slot:activator="{ on }">
-          <v-btn icon dark v-on="on">
-            <GoogleLogin
-              :params="params"
-              :logoutButton="true"
-              :onSuccess="onAuthSuccess"
-              :onFailure="onAuthFailure"
-              ><v-icon title="logout">{{ icons.logout }}</v-icon></GoogleLogin
-            >
+          <v-btn icon dark v-on="on" @click="logout">
+            <v-icon title="logout">{{ icons.logout }}</v-icon>
           </v-btn>
         </template>
         <span>Logout</span>
@@ -137,6 +129,7 @@ import {
   mdiAccountCircle,
   mdiBell,
   mdiDatabase,
+  mdiDog,
   mdiDotsVertical,
   mdiHelpCircle,
   mdiLogin,
@@ -147,27 +140,16 @@ import {
   mdiViewGrid,
   mdiApplicationImport,
   mdiHubspot,
-  mdiBookOpen,
-  mdiBadgeAccount,
-  mdiPoliceBadge,
-  mdiAccount,
   mdiShieldKey,
-  mdiAccountMultipleCheck,
-  mdiShopping,
-  mdiBriefcaseAccount
+  mdiThemeLightDark
 } from '@mdi/js';
 
 import { mapGetters } from 'vuex';
 import _config from '../config';
-import GoogleLogin from 'vue-google-login';
-import authMixin from '../mixins/authMixin';
+import authManager from '../mixins/authManager';
 
 export default {
   name: 'app-header',
-  mixins: [authMixin],
-  components: {
-    GoogleLogin
-  },
   data: () => ({
     drawer: false,
     mini: true,
@@ -176,11 +158,13 @@ export default {
       accountMultiple: mdiAccountMultiple,
       bell: mdiBell,
       database: mdiDatabase,
+      dog: mdiDog,
       import: mdiApplicationImport,
       helpCircle: mdiHelpCircle,
       home: mdiHome,
       hubSpot: mdiHubspot,
       settings: mdiCog,
+      themeLightDark: mdiThemeLightDark,
       verticalDots: mdiDotsVertical,
       viewGrid: mdiViewGrid,
       login: mdiLogin,
@@ -195,6 +179,7 @@ export default {
     loading: false
   }),
   created() {
+    this.initLightDarkMode();
     this.loading = true;
     // Loads the managed project list. If the user isn't signed in, the list will initially return as empty.
     // Once the user signs in, the onAuthSuccess function will load this list.
@@ -212,30 +197,39 @@ export default {
     });
   },
   methods: {
-    canAccessRoute(navItem) {
-      let routes = this.$router.options.routes;
-      let route = routes.filter(item => {
-        if (navItem.name === item.name) {
-          return true;
-        }
-      });
-      if (route === undefined || route.length === 0) {
-        return true;
-      } else if (route[0].meta && route[0].meta.requiresAuth === true) {
-        if (route[0].meta.requiresDataProducer === true) {
-          return this.isLoggedIn && this.isDataProducer;
-        } else {
-          return this.isLoggedIn;
-        }
-      } else {
-        return true;
-      }
+    login() {
+      return authManager.login();
+    },
+    logout() {
+      return authManager.logout();
     },
     projectIdChanged(reload) {
       _config.projectId = this.projectId;
       if (reload === true) {
         this.$router.go();
       }
+    },
+    initLightDarkMode() {
+      const dark = localStorage.getItem('darkMode') === 'true';
+      this.$vuetify.theme.dark = dark;
+
+      const _vm = this;
+      window
+        .matchMedia('(prefers-color-scheme: dark)')
+        .addEventListener('change', event => {
+          if (event.matches) {
+            // dark mode
+            _vm.$vuetify.theme.dark = true;
+          } else {
+            // light mode
+            _vm.$vuetify.theme.dark = false;
+          }
+          localStorage.setItem('darkMode', _vm.$vuetify.theme.dark);
+        });
+    },
+    toggleLightDarkMode() {
+      this.$vuetify.theme.dark = !this.$vuetify.theme.dark;
+      localStorage.setItem('darkMode', this.$vuetify.theme.dark);
     }
   },
   computed: {
@@ -261,64 +255,7 @@ export default {
       return this.projectSelectorEnabled && this.isDataProducer;
     },
     navigationItems() {
-      let items = [
-        {
-          name: 'home',
-          title: 'Home',
-          icon: mdiHome
-        },
-        {
-          section: 'Batch',
-          name: 'datasets',
-          title: 'Datasets',
-          icon: mdiDatabase
-        },
-        {
-          name: 'views',
-          title: 'Authorized Views',
-          icon: mdiViewGrid
-        },
-        {
-          section: 'Entitlements',
-          name: 'accounts',
-          title: 'Accounts',
-          icon: mdiAccountMultiple
-        },
-        {
-          name: 'policies',
-          title: 'Policies',
-          icon: mdiBadgeAccount
-        },
-        {
-          section: 'Marketplace',
-          hidden: _config.marketplaceIntegrationEnabled === false
-        },
-        {
-          name: 'procurements',
-          title: 'Procurement Requests',
-          icon: mdiShopping,
-          hidden: _config.marketplaceIntegrationEnabled === false
-        },
-        {
-          name: 'myProducts',
-          title: 'My Products',
-          icon: mdiBriefcaseAccount,
-          hidden: _config.marketplaceIntegrationEnabled === false
-        },
-        {
-          section: 'Application',
-          subheader: 'Admin',
-          name: 'admin',
-          title: 'Admin',
-          icon: mdiShieldKey
-        }
-      ];
-      // https://router.vuejs.org/api/#to
-      // https://vuetifyjs.com/en/components/lists
-      // Add a to variable to pass this instead so we can use the same views for certain things.
-      return items.filter(item => {
-        return this.canAccessRoute(item) && !item.hidden;
-      });
+      return this.$router.userMenuItems();
     }
   },
   props: {

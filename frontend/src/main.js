@@ -1,3 +1,21 @@
+/**
+ * Copyright 2020-2021 Google LLC
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *   https://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+
+'use strict';
+
 import Vue from 'vue';
 import App from './App.vue';
 import router from './router';
@@ -13,9 +31,7 @@ Vue.config.productionTip = false;
 // Enable vue-form
 Vue.use(VueForm);
 
-import { LoaderPlugin } from 'vue-google-login';
 import config from './config';
-import browserHelper from './browserHelper';
 import authManager from './mixins/authManager';
 
 function getQueryVariable(variable) {
@@ -53,13 +69,10 @@ if (projectId) {
 fetch(process.env.BASE_URL + 'config/config.json').then(response => {
   response.json().then(json => {
     config.initialize(json);
-
-    Vue.use(LoaderPlugin, {
-      client_id: config.googleAppClientId,
-      ux_mode: browserHelper.isBrowserChrome() ? 'redirect' : 'popup'
-    });
-
+    console.debug('main.authManager.init called');
     authManager.init().then(() => {
+      console.debug('main.authManager.init completed');
+      // Project configuration has to be set first
       new Vue({
         vuetify,
         router,
