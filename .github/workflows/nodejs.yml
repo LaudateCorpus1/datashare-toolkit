@@ -7,7 +7,7 @@ jobs:
     runs-on: ubuntu-latest
     strategy:
       matrix:
-        node-version: [10.x, 12.x, 13.x]
+        node-version: [16.x]
     steps:
     - uses: actions/checkout@v1
     - name: Use Node.js ${{ matrix.node-version }}
@@ -20,13 +20,14 @@ jobs:
         npm install
         npm run lint
         npm test
+        npm audit --only=prod
       env:
         CI: true
-  ingestion:
+  ingestion-batch:
     runs-on: ubuntu-latest
     strategy:
       matrix:
-        node-version: [10.x, 12.x]
+        node-version: [16.x]
     steps:
     - uses: actions/checkout@v1
     - name: Use Node.js ${{ matrix.node-version }}
@@ -35,9 +36,69 @@ jobs:
         node-version: ${{ matrix.node-version }}
     - name: npm install and lint for processUpload
       run: |
+        cd $GITHUB_WORKSPACE/shared
+        npm install
         cd $GITHUB_WORKSPACE/ingestion/batch
         npm install
         npm run lint
         npm test
+        npm audit --only=prod
+      env:
+        CI: true
+  ingestion-streaming:
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        node-version: [16.x]
+    steps:
+    - uses: actions/checkout@v1
+    - name: Use Node.js ${{ matrix.node-version }}
+      uses: actions/setup-node@v1
+      with:
+        node-version: ${{ matrix.node-version }}
+    - name: npm install and lint for processUpload
+      run: |
+        cd $GITHUB_WORKSPACE/ingestion/streaming
+        npm install
+        npm run lint
+        npm audit --only=prod
+      env:
+        CI: true
+  api:
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        node-version: [16.x]
+    steps:
+    - uses: actions/checkout@v1
+    - name: Use Node.js ${{ matrix.node-version }}
+      uses: actions/setup-node@v1
+      with:
+        node-version: ${{ matrix.node-version }}
+    - name: npm install, lint, and test for shared
+      run: |
+        cd $GITHUB_WORKSPACE/api/v1
+        npm install
+        npm run lint
+        npm audit --only=prod
+      env:
+        CI: true
+  ui:
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        node-version: [16.x]
+    steps:
+    - uses: actions/checkout@v1
+    - name: Use Node.js ${{ matrix.node-version }}
+      uses: actions/setup-node@v1
+      with:
+        node-version: ${{ matrix.node-version }}
+    - name: npm install, lint, and test for shared
+      run: |
+        cd $GITHUB_WORKSPACE/frontend
+        npm install
+        npm run lint
+        npm audit --only=prod
       env:
         CI: true

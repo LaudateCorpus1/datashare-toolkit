@@ -21,9 +21,10 @@ This functionality so far is mainly to be used for non-marketplace integrated us
   - VUE_APP_MARKETPLACE_INTEGRATION
   - VUE_APP_USER_GUIDE_URL
   - VUE_APP_GITHUB_URL
+  - VUE_APP_GOOGLE_APP_CLIENT_ID
 
 ## API
-- `OAUTH_CLIENT_ID` [environment variable](./ENVIRONMENT_VARIABLES.md) must be defined as an API environmental variable.
+- `API_KEY` and `AUTH_DOMAIN` [environment variables](./ENVIRONMENT_VARIABLES.md) must be defined as API environmental variables.
 - Marketplace integration is no longer enabled by default. It must be enabled through the configured `MANAGED_PROJECTS` [dictionary](./MANAGED_PROJECTS.md) in the API environmental variable. In addition to the environmental variable, there is also a runtime check made with the GCP service usage API to ensure the required API is enabled.
 
 # Enabling a new projectId for Datashare
@@ -32,8 +33,7 @@ This functionality so far is mainly to be used for non-marketplace integrated us
     ```
     cd api
     export PROJECT_ID=`gcloud config list --format 'value(core.project)'`; echo $PROJECT_ID
-    CUSTOM_ROLE_NAME=custom.ds.api.mgr;
-    gcloud iam roles create ${CUSTOM_ROLE_NAME} --project ${PROJECT_ID} --file config/ds-api-mgr-role-definition.yaml
+    gcloud iam roles create datashare.api.manager --project ${PROJECT_ID} --file config/ds-api-mgr-role-definition.yaml
     ```
 
-2. Grant access for role custom.ds.api.mgr to the service account running the main API and UI Cloud Run Services.
+2. Grant access for role datashare.api.manager to the service account running the main API and UI Cloud Run Services.

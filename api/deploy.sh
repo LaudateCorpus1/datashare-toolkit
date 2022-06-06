@@ -1,6 +1,6 @@
 #!/bin/bash -eu
 #
-# Copyright 2020 Google LLC
+# Copyright 2020-2022 Google LLC
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -29,6 +29,21 @@ if [[ -z "${ZONE:=}" ]]; then
     echo "Defaulted ZONE to '${ZONE}'"
 fi
 
+if [[ -z "${API_KEY:=}" ]]; then
+    export API_KEY="[change-me]"
+    echo "Defaulted API_KEY to '${API_KEY}'"
+fi
+
+if [[ -z "${AUTH_DOMAIN:=}" ]]; then
+    export AUTH_DOMAIN="[change-me]"
+    echo "Defaulted AUTH_DOMAIN to '${AUTH_DOMAIN}'"
+fi
+
+if [[ -z "${TENANT_ID:=}" ]]; then
+    export TENANT_ID="[change-me]"
+    echo "Defaulted TENANT_ID to '${TENANT_ID}'"
+fi
+
 if [[ -z "${OAUTH_CLIENT_ID:=}" ]]; then
     export OAUTH_CLIENT_ID="[change-me]"
     echo "Defaulted OAUTH_CLIENT_ID to '${OAUTH_CLIENT_ID}'"
@@ -41,96 +56,123 @@ fi
 
 export PROJECT_ID=$(gcloud config list --format 'value(core.project)')
 echo $PROJECT_ID
+
+if [[ -z "${SECRET_NAME_PREFIX:=}" ]]; then
+    export SECRET_NAME_PREFIX="[change-me]"
+    echo "Defaulted SECRET_NAME_PREFIX to '${PROJECT_ID}'"
+fi
+
 cd "$(dirname "$0")"
 
 # Up to root
 cd ../
-gcloud builds submit --config api/v1alpha/api-cloudbuild.yaml --substitutions=TAG_NAME=${TAG}
+gcloud builds submit --config api/v1/api-cloudbuild.yaml --substitutions=TAG_NAME=${TAG}
 
-# Move to v1alpha
-cd api/v1alpha
+# Move to v1
+cd api/v1
 export NAMESPACE=datashare-apis
 export SERVICE_ACCOUNT_NAME=ds-api-mgr
 CLUSTER=datashare
 gcloud config set compute/zone $ZONE
 
 gcloud run deploy ds-api \
-    --cluster $CLUSTER \
-    --cluster-location $ZONE \
-    --min-instances 1 \
-    --max-instances 10 \
-    --namespace $NAMESPACE \
     --image gcr.io/${PROJECT_ID}/ds-api:${TAG} \
-    --platform gke \
+    --region=$REGION \
+    --no-allow-unauthenticated \
+    --platform managed \
     --service-account ${SERVICE_ACCOUNT_NAME} \
-    --update-env-vars=OAUTH_CLIENT_ID="${OAUTH_CLIENT_ID}",DATA_PRODUCERS="${DATA_PRODUCERS}" \
-    --remove-env-vars=PROJECT_ID,MARKETPLACE_INTEGRATION
+    --update-secrets=API_KEY=${SECRET_NAME_PREFIX}_api_key:latest,DATA_PRODUCERS=${SECRET_NAME_PREFIX}_data_producers:latest \
+    --update-env-vars=^---^AUTH_DOMAIN="${AUTH_DOMAIN}"---TENANT_ID="${TENANT_ID}" \
+    --remove-env-vars=PROJECT_ID,MARKETPLACE_INTEGRATION,OAUTH_CLIENT_ID
 
-if ! gcloud run services describe ds-api --cluster $CLUSTER --cluster-location $ZONE --namespace $NAMESPACE --platform gke | grep -q MANAGED_PROJECTS; then
+if ! gcloud run services describe ds-api --region=$REGION --platform managed | grep -q MANAGED_PROJECTS; then
     echo "MANAGED_PROJECTS env variable not found, creating it"
     MANAGED_PROJECTS='{ "'${PROJECT_ID}'": { "MARKETPLACE_INTEGRATION_ENABLED": false, "labels": { "VUE_APP_MY_PRODUCTS_MORE_INFORMATION_TEXT": "", "VUE_APP_MY_PRODUCTS_MORE_INFORMATION_BUTTON_TEXT": "", "VUE_APP_MY_PRODUCTS_MORE_INFORMATION_BUTTON_URL": "" } } }'
     echo ${MANAGED_PROJECTS}
     gcloud run services update ds-api \
-        --platform gke \
-        --namespace $NAMESPACE \
-        --cluster $CLUSTER \
-        --cluster-location $ZONE \
+        --region=$REGION \
+        --platform managed \
         --update-env-vars=^---^MANAGED_PROJECTS="${MANAGED_PROJECTS}"
 fi
 
 gcloud run services update-traffic ds-api \
-    --cluster $CLUSTER \
-    --cluster-location $ZONE \
-    --to-latest \
-    --namespace $NAMESPACE \
-    --platform gke
+    --region=$REGION \
+    --platform managed \
+    --to-latest
 
-gcloud container clusters get-credentials $CLUSTER
-kubectl config current-context
+# Delete old revisions
+DELETE_REVISIONS=`gcloud run revisions list \
+    --service ds-api \
+    --region=$REGION \
+    --platform managed \
+    | grep REVISION: \
+    | awk 'NR > 4 {print $2}'`;
 
-# If '*' wildcard is used in the data producers, quote the full string as needed for YAML/applying the policy
-# https://stackoverflow.com/questions/19109912/yaml-do-i-need-quotes-for-strings-in-yaml
-if [[ ${DATA_PRODUCERS} == *"*"* ]]; then
-    echo "* found adding quotes"
-    export DATA_PRODUCERS='"'${DATA_PRODUCERS}'"'
-    echo ${DATA_PRODUCERS}
+if [ ! -z "$DELETE_REVISIONS" ]; then
+    for revision in $DELETE_REVISIONS
+    do
+        gcloud run revisions delete $revision \
+            --region=$REGION \
+            --platform managed \
+            --async \
+            --quiet
+    done
 fi
 
-# cat istio-manifests/1.4/authn/* | envsubst | kubectl delete -f -
-kubectl get policy.authentication.istio.io -n "$NAMESPACE"
-kubectl delete policy.authentication.istio.io -n "$NAMESPACE" --all
-cat istio-manifests/1.4/authn/* | envsubst | kubectl apply -f -
+# Up to root
+cd ../../
 
-# cat istio-manifests/1.4/authz/* | envsubst | kubectl delete -f -
-kubectl get authorizationpolicy.security.istio.io -n "$NAMESPACE"
-kubectl delete authorizationpolicy.security.istio.io -n "$NAMESPACE" --all
-cat istio-manifests/1.4/authz/* | envsubst | kubectl apply -f -
+# Update the API Gateway config
+npm i -g json2yaml
+
+API_GW_SERVICE_ACCOUNT_NAME=api-gw-ds-api
+DS_API_URL=`gcloud run services describe ds-api --platform managed --region=$REGION --format="value(status.url)"`; echo $DS_API_URL
+
+curl -H "Authorization: Bearer $(gcloud auth print-identity-token --impersonate-service-account=${API_GW_SERVICE_ACCOUNT_NAME}@${PROJECT_ID}.iam.gserviceaccount.com --include-email)" $DS_API_URL/v1/docs/openapi_spec -o ds-api_oas.json
+json2yaml ./ds-api_oas.json > ./ds-api_oas.yaml
+
+DS_API_FQDN=$(echo $DS_API_URL | sed 's!https://!!'); echo $DS_API_FQDN
+sed -i.bak "s|DS_API_FQDN|$DS_API_FQDN|" ds-api_oas.yaml
+sed -i.bak "s|PROJECT_ID|$PROJECT_ID|" ds-api_oas.yaml
+sed -i.bak "s|OAUTH_CLIENT_ID|$OAUTH_CLIENT_ID|" ds-api_oas.yaml
+
+TIMESTAMP=$( date +%Y%m%d-%H%M%S )
+NEW_CONFIG_ID=api-gw-ds-api-$TIMESTAMP
+
+gcloud api-gateway api-configs create $NEW_CONFIG_ID --api=api-gw-ds-api --openapi-spec=ds-api_oas.yaml --backend-auth-service-account=${API_GW_SERVICE_ACCOUNT_NAME}@${PROJECT_ID}.iam.gserviceaccount.com --display-name=$API_GW_SERVICE_ACCOUNT_NAME
+gcloud api-gateway gateways update api-gw-ds-api --api=api-gw-ds-api --api-config=$NEW_CONFIG_ID --location $REGION
 
 if [ "${MARKETPLACE_INTEGRATION_ENABLED:=}" = "true" ]; then
-    cd ../../
-    gcloud builds submit --config api/v1alpha/listener-cloudbuild.yaml --substitutions=TAG_NAME=${TAG}
+    gcloud builds submit --config api/v1/listener-cloudbuild.yaml --substitutions=TAG_NAME=${TAG}
 
-    # TODO: Switch to Managed Cloud Run when this issue is resolved
-    # --no-cpu-throttling is not working through gcloud alpha
-    # ERROR: (gcloud.alpha.run.services.update) The annotation run.googleapis.com/cpu-throttling is not available
-    # gcloud alpha run deploy "ds-listener-${PROJECT_ID}" \
-    #     --image gcr.io/${PROJECT_ID}/ds-listener:${TAG} \
-    #     --region=${REGION} \
-    #     --platform managed \
-    #     --max-instances 1 \
-    #     --service-account ${SERVICE_ACCOUNT_NAME} \
-    #     --no-allow-unauthenticated \
-    #     --cpu 1 \
-    #     --memory 2Gi \
-    #     --no-cpu-throttling
+    gcloud run deploy "ds-listener-${PROJECT_ID}" \
+         --image gcr.io/${PROJECT_ID}/ds-listener:${TAG} \
+         --region=${REGION} \
+         --platform managed \
+         --min-instances 1 \
+         --max-instances 1 \
+         --service-account ${SERVICE_ACCOUNT_NAME} \
+         --no-allow-unauthenticated \
+         --cpu 1 \
+         --memory 2Gi \
+         --no-cpu-throttling
 
-    gcloud run deploy "ds-listener" \
-        --cluster $CLUSTER \
-        --cluster-location $ZONE \
-        --min-instances 1 \
-        --max-instances 1 \
-        --namespace $NAMESPACE \
-        --image gcr.io/${PROJECT_ID}/ds-listener:${TAG} \
-        --platform gke \
-        --service-account ${SERVICE_ACCOUNT_NAME}
+    # Delete old revisions
+    DELETE_REVISIONS=`gcloud run revisions list \
+        --service ds-listener \
+        --region=${REGION} \
+        --platform managed \
+        | grep REVISION: \
+        | awk 'NR > 4 {print $2}'`;
+
+    if [ ! -z "$DELETE_REVISIONS" ]; then
+        for revision in $DELETE_REVISIONS
+        do
+            gcloud run revisions delete $revision \
+                --region=${REGION} \
+                --platform managed \
+                --async \
+                --quiet
+        done
+    fi
 fi

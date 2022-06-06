@@ -1,11 +1,28 @@
+/**
+ * Copyright 2020-2021 Google LLC
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *   https://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+
+'use strict';
+
 import store from './../../store';
 import axios from 'axios';
 
 import router from './../../router';
 
-import Vue from 'vue';
-import authMixin from './../../mixins/authMixin';
 import config from './../../config';
+import authManager from '../../mixins/authManager';
 
 // set the default Accept header to application/json
 axios.defaults.headers.common['Accept'] = 'application/json';
@@ -15,6 +32,9 @@ const validContentTypes = [
   'application/json',
   'application/json; charset=utf-8'
 ];
+
+const forceTokenRefreshHeader = 'x-gcp-needs-token-refresh';
+let forceTokenRefresh = false;
 
 axios.interceptors.request.use(async function(reqConfig) {
   const projectId = config.projectId;
@@ -30,15 +50,9 @@ axios.interceptors.request.use(async function(reqConfig) {
     }
     reqConfig.headers['x-gcp-project-id'] = projectId;
   }
-  if (store.getters.isLoggedIn) {
-    const account = store.state.user.data.email;
-    if (account) {
-      reqConfig.headers['x-gcp-account'] = account;
-    }
-    const googleUser = await Vue.GoogleAuth.then(auth2 => {
-      return auth2.currentUser.get();
-    });
-    const token = googleUser.getAuthResponse().id_token;
+  if (authManager.isSignedIn()) {
+    const token = await authManager.getIdToken(forceTokenRefresh);
+    forceTokenRefresh = false;
     reqConfig.headers.Authorization = `Bearer ${token}`;
     return reqConfig;
   } else {
@@ -49,6 +63,11 @@ axios.interceptors.request.use(async function(reqConfig) {
 // reject anything that is not application/json
 axios.interceptors.response.use(
   response => {
+    if (response.headers[forceTokenRefreshHeader]) {
+      forceTokenRefresh = true;
+      console.debug('Id Token refresh is required');
+      authManager.refreshClaims();
+    }
     return validContentTypes.includes(response.headers['content-type'])
       ? response.data
       : Promise.reject('Content-Type: application/json is required');
@@ -57,9 +76,9 @@ axios.interceptors.response.use(
   error => {
     if (error.response) {
       if (error.response.status === 401) {
-        router.replace('/');
+        router.replace('/').catch(_err => {});
       } else if (error.response.status === 403) {
-        router.replace('/restricted');
+        router.replace('/restricted').catch(_err => {});
       }
       return validContentTypes.includes(error.response.headers['content-type'])
         ? error.response.data
@@ -87,7 +106,7 @@ export default {
       })
       .then(response => response);
   },
-  createDataset(projectId, datasetId, description) {
+  createDataset(datasetId, description) {
     return axios
       .post(this._apiBaseUrl() + '/datasets', {
         datasetId: datasetId,
@@ -95,14 +114,14 @@ export default {
       })
       .then(response => response);
   },
-  updateDataset(projectId, datasetId, description) {
+  updateDataset(datasetId, description) {
     return axios
       .put(this._apiBaseUrl() + `/datasets/${datasetId}`, {
         description: description
       })
       .then(response => response);
   },
-  deleteDataset(projectId, datasetId) {
+  deleteDataset(datasetId) {
     return axios
       .delete(this._apiBaseUrl() + `/datasets/${datasetId}`)
       .then(response => response);
@@ -194,12 +213,12 @@ export default {
       .get(this._apiBaseUrl() + `/datasets/${datasetId}/views/${viewId}`)
       .then(response => response);
   },
-  getTables(projectId, datasetId, labelKey) {
+  getTables(datasetId) {
     return axios
       .get(this._apiBaseUrl() + `/datasets/${datasetId}/tables`)
       .then(response => response);
   },
-  getTableColumns(projectId, datasetId, tableId) {
+  getTableColumns(datasetId, tableId) {
     return axios
       .get(
         this._apiBaseUrl() + `/datasets/${datasetId}/tables/${tableId}/columns`
@@ -292,22 +311,17 @@ export default {
       .get(this._apiBaseUrl() + '/products')
       .then(response => response);
   },
-  initSchema(payload) {
+  initSchema() {
     return axios
       .post(this._apiBaseUrl() + '/admin:initSchema')
       .then(response => response);
   },
   syncResources(type) {
-    console.log(`Performing sync for type: ${type}`);
+    console.debug(`Performing sync for type: ${type}`);
     return axios
       .post(this._apiBaseUrl() + `/admin:syncResources`, {
         type: type
       })
-      .then(response => response);
-  },
-  isDataProducer() {
-    return axios
-      .post(this._apiBaseUrl() + '/auth:isDataProducer')
       .then(response => response);
   },
   getManagedProjects() {
@@ -318,6 +332,50 @@ export default {
   getProjectConfiguration() {
     return axios
       .get(this._apiBaseUrl() + '/resources/configuration')
+      .then(response => response);
+  },
+  getBuckets() {
+    return axios
+      .get(this._apiBaseUrl() + '/storage/buckets')
+      .then(response => response);
+  },
+  createBucket(name) {
+    return axios
+      .post(this._apiBaseUrl() + '/storage/buckets', {
+        name: name
+      })
+      .then(response => response);
+  },
+  deleteBucket(name) {
+    return axios
+      .delete(this._apiBaseUrl() + `/storage/buckets/${name}`)
+      .then(response => response);
+  },
+  getTopics() {
+    return axios
+      .get(this._apiBaseUrl() + '/pubsub/topics')
+      .then(response => response);
+  },
+  createTopic(name) {
+    return axios
+      .post(this._apiBaseUrl() + '/pubsub/topics', {
+        name: name
+      })
+      .then(response => response);
+  },
+  deleteTopic(topicId) {
+    return axios
+      .delete(this._apiBaseUrl() + `/pubsub/topics/${topicId}`)
+      .then(response => response);
+  },
+  getDashboard() {
+    return axios
+      .get(this._apiBaseUrl() + '/resources/dashboard')
+      .then(response => response);
+  },
+  getApplicationUsers() {
+    return axios
+      .get(this._apiBaseUrl() + '/admin/applicationUsers')
       .then(response => response);
   }
 };
